@@ -1,6 +1,9 @@
 """Authentication endpoints: handler login, whistleblower receipt, logout, 2FA."""
 
+import hashlib
+import secrets
 import uuid
+from datetime import timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
@@ -13,8 +16,11 @@ from app.auth.deps import SESSION_COOKIE, _extract_token, get_current_session
 from app.auth.sessions import Session, store
 from app.core import ratelimit
 from app.core.config import get_settings
-from app.db.base import get_session
+from app.db.base import get_session, utcnow
 from app.db.models import AppUser, Report
+from app.notifications import service as notifications
+
+RESET_TTL_MINUTES = 60
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -48,6 +54,15 @@ class TwoFAConfirm(BaseModel):
 
 class TwoFADisable(BaseModel):
     code: str
+
+
+class ForgotRequest(BaseModel):
+    username: str
+
+
+class ResetRequest(BaseModel):
+    token: str
+    new_password: str
 
 
 def _set_cookie(response: Response, token: str) -> None:
@@ -150,6 +165,60 @@ async def receipt_auth(
     token = store.create(session)
     _set_cookie(response, token)
     return {"token": token, "report_id": str(report.id)}
+
+
+@router.post("/password/forgot")
+async def password_forgot(
+    body: ForgotRequest, db: AsyncSession = Depends(get_session)
+) -> dict:
+    """Email a reset token if the account exists. Always returns ok (no enumeration)."""
+    if not ratelimit.allow(f"forgot:{body.username}", limit=5, window_seconds=300):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts")
+    user = await db.scalar(
+        select(AppUser).where(
+            AppUser.tenant_id == DEFAULT_TENANT_ID,
+            AppUser.username == body.username,
+            AppUser.enabled.is_(True),
+        )
+    )
+    if user and user.mail_address:
+        token = secrets.token_urlsafe(32)
+        user.reset_token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        user.reset_token_expires = utcnow() + timedelta(minutes=RESET_TTL_MINUTES)
+        await notifications.enqueue(
+            db,
+            tenant_id=user.tenant_id,
+            address=user.mail_address,
+            subject="Reimposta la password",
+            body=(
+                f"Per reimpostare la password inserisci questo codice (valido {RESET_TTL_MINUTES} minuti):\n"
+                f"{token}\n"
+                "Se non hai richiesto il reset, ignora questa email."
+            ),
+        )
+        await db.commit()
+    return {"status": "ok"}
+
+
+@router.post("/password/reset")
+async def password_reset(body: ResetRequest, db: AsyncSession = Depends(get_session)) -> dict:
+    invalid = HTTPException(status_code=400, detail="Token non valido o scaduto")
+    if not body.token:
+        raise invalid
+    h = hashlib.sha256(body.token.encode("utf-8")).hexdigest()
+    user = await db.scalar(select(AppUser).where(AppUser.reset_token_hash == h))
+    if user is None:
+        raise invalid
+    exp = user.reset_token_expires
+    if exp is not None and exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    if exp is None or exp < utcnow():
+        raise invalid
+    passwords.provision_credentials(user, body.new_password)
+    user.reset_token_hash = ""
+    user.reset_token_expires = None
+    await db.commit()
+    return {"status": "ok"}
 
 
 @router.post("/logout")
