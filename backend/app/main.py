@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from app import __version__
 from app.jobs import scheduler as job_scheduler
 from app.admin.router import router as admin_router
+from app.analyst.router import router as analyst_router
 from app.auth.router import router as auth_router
 from app.cases import service as case_service
 from app.cases.router import custodian_router
@@ -56,6 +57,7 @@ app.include_router(reports_router)
 app.include_router(cases_router)
 app.include_router(custodian_router)
 app.include_router(admin_router)
+app.include_router(analyst_router)
 app.include_router(public_router)
 
 

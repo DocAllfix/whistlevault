@@ -6,6 +6,7 @@ export function Nav() {
   const navigate = useNavigate();
   const isAdmin = role === "admin";
   const isCustodian = role === "custodian";
+  const isAnalyst = role === "analyst";
 
   return (
     <header className="topbar">
@@ -17,6 +18,7 @@ export function Nav() {
         {isCustodian && <NavLink to="/custodian">Richieste identità</NavLink>}
         {isAdmin && <NavLink to="/admin/users">Utenti</NavLink>}
         {isAdmin && <NavLink to="/admin/questionnaires">Questionari</NavLink>}
+        {(isAdmin || isAnalyst) && <NavLink to="/stats">Statistiche</NavLink>}
         <NavLink to="/settings">Impostazioni</NavLink>
       </nav>
       <span className="spacer" />

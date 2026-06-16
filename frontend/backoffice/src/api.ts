@@ -118,4 +118,14 @@ export const api = {
 
   // Admin: audit log
   auditLog: (t: string) => req<any[]>("/admin/audit-log", {}, t),
+
+  // Analyst statistics
+  stats: (t: string) =>
+    req<{
+      total: number;
+      important: number;
+      by_status: { status_id: string | null; label: string; count: number }[];
+      by_context: { context_id: string; name: string; count: number }[];
+      by_month: Record<string, number>;
+    }>("/analyst/stats", {}, t),
 };

@@ -6,6 +6,7 @@ import { Custodian } from "./pages/Custodian";
 import { Dashboard } from "./pages/Dashboard";
 import { Login } from "./pages/Login";
 import { Settings } from "./pages/Settings";
+import { Statistics } from "./pages/Statistics";
 import { Questionnaires } from "./pages/admin/Questionnaires";
 import { Users } from "./pages/admin/Users";
 
@@ -33,6 +34,7 @@ export function App() {
           <Route path="/cases/:id" element={<Protected><Shell><CaseDetail /></Shell></Protected>} />
           <Route path="/custodian" element={<Protected><Shell><Custodian /></Shell></Protected>} />
           <Route path="/settings" element={<Protected><Shell><Settings /></Shell></Protected>} />
+          <Route path="/stats" element={<Protected><Shell><Statistics /></Shell></Protected>} />
           <Route path="/admin/users" element={<Protected><Shell><Users /></Shell></Protected>} />
           <Route path="/admin/questionnaires" element={<Protected><Shell><Questionnaires /></Shell></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
