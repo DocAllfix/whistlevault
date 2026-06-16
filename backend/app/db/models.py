@@ -78,6 +78,8 @@ class AppUser(TimestampMixin, Base):
     password_change_needed: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     password_change_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     two_factor_secret: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # SHA-256 hashes of one-time recovery codes (consumed on use).
+    two_factor_recovery: Mapped[list] = mapped_column(JSONType, default=list, nullable=False)
     accepted_privacy_policy: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Crypto material (opaque to the DB).

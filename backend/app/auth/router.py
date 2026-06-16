@@ -1,4 +1,6 @@
-"""Authentication endpoints: handler login, whistleblower receipt, logout."""
+"""Authentication endpoints: handler login, whistleblower receipt, logout, 2FA."""
+
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
@@ -36,6 +38,15 @@ class LoginRequest(BaseModel):
 
 class ReceiptRequest(BaseModel):
     receipt: str
+
+
+class TwoFAConfirm(BaseModel):
+    secret: str
+    code: str
+
+
+class TwoFADisable(BaseModel):
+    code: str
 
 
 def _set_cookie(response: Response, token: str) -> None:
@@ -76,10 +87,18 @@ async def login(
     if private_key is None:
         raise invalid
 
-    if user.two_factor_secret and not totp.verify(user.two_factor_secret, body.totp_code or ""):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing 2FA code"
-        )
+    if user.two_factor_secret:
+        code = (body.totp_code or "").strip()
+        if not totp.verify(user.two_factor_secret, code):
+            # Fall back to a one-time recovery code (consumed on use).
+            h = totp.hash_code(code)
+            if code and h in (user.two_factor_recovery or []):
+                user.two_factor_recovery = [x for x in user.two_factor_recovery if x != h]
+                await db.commit()
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or missing 2FA code"
+                )
 
     session = Session(
         kind="user",
@@ -150,3 +169,59 @@ async def me(session: Session = Depends(get_current_session)) -> dict:
         "report_id": session.report_id,
         "permissions": session.permissions,
     }
+
+
+def _require_user(session: Session) -> None:
+    if session.kind != "user" or not session.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+
+@router.post("/2fa/init")
+async def twofa_init(
+    session: Session = Depends(get_current_session), db: AsyncSession = Depends(get_session)
+) -> dict:
+    """Generate a candidate secret + otpauth URI (for QR). Not yet active."""
+    _require_user(session)
+    user = await db.get(AppUser, uuid.UUID(session.user_id))
+    secret = totp.generate_secret()
+    return {"secret": secret, "otpauth_uri": totp.provisioning_uri(secret, user.username)}
+
+
+@router.post("/2fa/confirm")
+async def twofa_confirm(
+    body: TwoFAConfirm,
+    session: Session = Depends(get_current_session),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    """Verify the first code, then activate 2FA and return one-time recovery codes."""
+    _require_user(session)
+    if not totp.verify(body.secret, body.code):
+        raise HTTPException(status_code=400, detail="Invalid code")
+    user = await db.get(AppUser, uuid.UUID(session.user_id))
+    codes, hashes = totp.generate_recovery_codes()
+    user.two_factor_secret = body.secret
+    user.two_factor_recovery = hashes
+    await db.commit()
+    return {"status": "enabled", "recovery_codes": codes}
+
+
+@router.post("/2fa/disable")
+async def twofa_disable(
+    body: TwoFADisable,
+    session: Session = Depends(get_current_session),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    _require_user(session)
+    user = await db.get(AppUser, uuid.UUID(session.user_id))
+    if not user.two_factor_secret:
+        return {"status": "already_disabled"}
+    code = body.code.strip()
+    ok = totp.verify(user.two_factor_secret, code) or totp.hash_code(code) in (
+        user.two_factor_recovery or []
+    )
+    if not ok:
+        raise HTTPException(status_code=400, detail="Invalid code")
+    user.two_factor_secret = ""
+    user.two_factor_recovery = []
+    await db.commit()
+    return {"status": "disabled"}
