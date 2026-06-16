@@ -41,6 +41,7 @@ export interface CaseDetail {
   progressive: number;
   status_id: string | null;
   important: boolean;
+  score: number;
   label: string;
   created_at: string;
   expiration_date: string | null;
@@ -60,6 +61,15 @@ export const api = {
       j({ username, password, totp_code }),
     ),
 
+  twofaInit: (t: string) =>
+    req<{ secret: string; otpauth_uri: string }>("/auth/2fa/init", { method: "POST" }, t),
+  twofaConfirm: (t: string, secret: string, code: string) =>
+    req<{ status: string; recovery_codes: string[] }>("/auth/2fa/confirm", j({ secret, code }), t),
+  twofaDisable: (t: string, code: string) => req("/auth/2fa/disable", j({ code }), t),
+  forgotPassword: (username: string) => req("/auth/password/forgot", j({ username })),
+  resetPassword: (token: string, new_password: string) =>
+    req("/auth/password/reset", j({ token, new_password })),
+
   // Cases
   cases: (t: string, statusId?: string) =>
     req<CaseSummary[]>(`/cases${statusId ? `?status_id=${statusId}` : ""}`, {}, t),
@@ -71,6 +81,15 @@ export const api = {
   requestIdentity: (t: string, id: string, motivation: string) =>
     req<{ identity_request_id: string }>(`/cases/${id}/identity-requests`, j({ motivation }), t),
   fileUrl: (id: string, fileId: string) => `${BASE}/cases/${id}/files/${fileId}`,
+  exportUrl: (id: string) => `${BASE}/cases/${id}/export`,
+  createRedaction: (t: string, id: string, reference: string, mask: string[], permanent: boolean) =>
+    req(`/cases/${id}/redactions`, j({ reference, mask, permanent }), t),
+  grantAccess: (t: string, id: string, user_id: string) =>
+    req(`/cases/${id}/grant`, j({ user_id }), t),
+  transferAccess: (t: string, id: string, user_id: string) =>
+    req(`/cases/${id}/transfer`, j({ user_id }), t),
+  revokeAccess: (t: string, id: string, user_id: string) =>
+    req(`/cases/${id}/revoke`, j({ user_id }), t),
 
   // Statuses (for the dropdown)
   statuses: (t: string) =>

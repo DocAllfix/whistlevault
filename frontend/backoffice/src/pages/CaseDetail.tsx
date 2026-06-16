@@ -12,12 +12,33 @@ export function CaseDetail() {
   const [visibility, setVisibility] = useState("public");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [users, setUsers] = useState<{ id: string; username: string; role: string }[]>([]);
+  const [target, setTarget] = useState("");
+  const [maskText, setMaskText] = useState("");
 
   async function load() {
     if (!token) return;
     const [d, st] = await Promise.all([api.caseDetail(token, id), api.statuses(token)]);
     setDetail(d);
     setStatuses(st.map((s) => ({ id: s.id, label: s.label.it ?? s.label.en ?? "" })));
+    if (role === "admin") {
+      try {
+        setUsers(await api.users(token));
+      } catch {
+        /* non-admin cannot list users */
+      }
+    }
+  }
+
+  async function exportZip() {
+    const res = await fetch(api.exportUrl(id), { headers: { Authorization: `Bearer ${token}` } });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `segnalazione-${detail?.progressive ?? "export"}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   useEffect(() => {
@@ -53,7 +74,21 @@ export function CaseDetail() {
 
   return (
     <>
-      <h1>Segnalazione n. {detail.progressive}</h1>
+      <h1>
+        Segnalazione n. {detail.progressive}{" "}
+        {detail.score ? (
+          <span className="badge">
+            Rischio {detail.score}
+            {detail.important ? " ⚠" : ""}
+          </span>
+        ) : null}
+      </h1>
+
+      <div className="btn-row">
+        <button className="btn btn-secondary btn-sm" onClick={exportZip} disabled={busy}>
+          Esporta caso (ZIP)
+        </button>
+      </div>
 
       <div className="row">
         <div>
@@ -106,6 +141,78 @@ export function CaseDetail() {
           </p>
         ))}
       </div>
+
+      <div className="card">
+        <label htmlFor="mask">Oscura un testo nelle risposte</label>
+        <input
+          id="mask"
+          value={maskText}
+          onChange={(e) => setMaskText(e.target.value)}
+          placeholder="testo da oscurare"
+        />
+        <div className="btn-row">
+          <button
+            className="btn btn-secondary btn-sm"
+            disabled={busy || !maskText.trim()}
+            onClick={() =>
+              act(async () => {
+                await api.createRedaction(token!, id, "answers", [maskText.trim()], false);
+                setMaskText("");
+              })
+            }
+          >
+            Oscura (reversibile)
+          </button>
+          <button
+            className="btn btn-danger btn-sm"
+            disabled={busy || !maskText.trim()}
+            onClick={() => {
+              if (confirm("Oscuramento permanente e irreversibile. Procedere?"))
+                act(async () => {
+                  await api.createRedaction(token!, id, "answers", [maskText.trim()], true);
+                  setMaskText("");
+                });
+            }}
+          >
+            Oscura permanentemente
+          </button>
+        </div>
+      </div>
+
+      {role === "admin" && (
+        <>
+          <h2>Accesso al caso</h2>
+          <div className="row">
+            <div>
+              <label htmlFor="tgt">Gestore</label>
+              <select id="tgt" value={target} onChange={(e) => setTarget(e.target.value)}>
+                <option value="">— Seleziona —</option>
+                {users
+                  .filter((u) => u.role === "recipient" || u.role === "admin")
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.username}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={busy || !target}
+              onClick={() => act(() => api.grantAccess(token!, id, target))}
+            >
+              Concedi accesso
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
+              disabled={busy || !target}
+              onClick={() => act(() => api.transferAccess(token!, id, target))}
+            >
+              Trasferisci
+            </button>
+          </div>
+        </>
+      )}
 
       {detail.identity && (
         <>

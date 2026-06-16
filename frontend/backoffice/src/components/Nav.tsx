@@ -17,6 +17,7 @@ export function Nav() {
         {isCustodian && <NavLink to="/custodian">Richieste identità</NavLink>}
         {isAdmin && <NavLink to="/admin/users">Utenti</NavLink>}
         {isAdmin && <NavLink to="/admin/questionnaires">Questionari</NavLink>}
+        <NavLink to="/settings">Impostazioni</NavLink>
       </nav>
       <span className="spacer" />
       <span className="muted" style={{ color: "#cbd5e1" }}>
