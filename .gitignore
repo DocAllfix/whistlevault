@@ -1,0 +1,35 @@
+# --- Clean-room legal guardrail -------------------------------------------
+# GlobaLeaks (AGPL-3.0) is kept ONLY as a study reference. It must NEVER be
+# part of the product repo/build. Do not remove this line.
+reference/
+
+# --- Python ----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Node / frontend -------------------------------------------------------
+node_modules/
+dist/
+build/
+.vite/
+*.local
+
+# --- OS / editor -----------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- Runtime data / secrets ------------------------------------------------
+*.sqlite
+*.db
+data/
+secrets/
