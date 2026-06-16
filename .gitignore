@@ -35,3 +35,8 @@ Thumbs.db
 *.db
 data/
 secrets/
+
+# --- Test/debug artifacts --------------------------------------------------
+.playwright-mcp/
+*.png
+receipt.png
