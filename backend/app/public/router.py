@@ -2,18 +2,45 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.admin.serializers import serialize_questionnaire
+from app.core import ratelimit
 from app.db.base import get_session
 from app.db.models import Context, Field, Questionnaire, Step, Tenant
+from app.notifications import service as notifications
 
 router = APIRouter(prefix="/api/public", tags=["public"])
 
 DEFAULT_TENANT_ID = 1
+
+
+class SignupRequest(BaseModel):
+    organization: str
+    email: str
+
+
+@router.post("/signup")
+async def signup(body: SignupRequest, db: AsyncSession = Depends(get_session)) -> dict:
+    """Lightweight 'request access' for prospective clients. Always returns ok."""
+    if not ratelimit.allow(f"signup:{body.email}", limit=3, window_seconds=3600):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many requests")
+    tenant = await db.get(Tenant, DEFAULT_TENANT_ID)
+    notify = (tenant.settings or {}).get("signup_notify_email") if tenant else None
+    if notify:
+        await notifications.enqueue(
+            db,
+            tenant_id=DEFAULT_TENANT_ID,
+            address=notify,
+            subject="Nuova richiesta di attivazione",
+            body=f"Richiesta di attivazione da: {body.organization} <{body.email}>",
+        )
+        await db.commit()
+    return {"status": "ok"}
 
 
 @router.get("")

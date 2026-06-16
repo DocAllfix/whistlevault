@@ -53,6 +53,10 @@ export function Settings() {
   return (
     <>
       <h1>Impostazioni</h1>
+
+      <h2>Cambia password</h2>
+      <ChangePassword />
+
       <h2>Autenticazione a due fattori (2FA)</h2>
       <div className="card">
         {!uri && recovery.length === 0 && (
@@ -103,5 +107,43 @@ export function Settings() {
         {error && <p className="error-text">{error}</p>}
       </div>
     </>
+  );
+}
+
+function ChangePassword() {
+  const { token } = useAuth();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setMsg("");
+    setError("");
+    try {
+      await api.changePassword(token!, current, next);
+      setMsg("Password aggiornata.");
+      setCurrent("");
+      setNext("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Errore");
+    }
+  }
+
+  return (
+    <form className="card" onSubmit={submit}>
+      <label htmlFor="cur">Password attuale</label>
+      <input id="cur" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+      <label htmlFor="nw">Nuova password</label>
+      <input id="nw" type="password" value={next} onChange={(e) => setNext(e.target.value)} />
+      {msg && <p style={{ color: "var(--color-success)" }}>{msg}</p>}
+      {error && <p className="error-text">{error}</p>}
+      <div className="btn-row">
+        <button className="btn btn-primary" type="submit" disabled={!current || !next}>
+          Aggiorna password
+        </button>
+      </div>
+    </form>
   );
 }

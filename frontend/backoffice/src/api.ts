@@ -66,6 +66,8 @@ export const api = {
   twofaConfirm: (t: string, secret: string, code: string) =>
     req<{ status: string; recovery_codes: string[] }>("/auth/2fa/confirm", j({ secret, code }), t),
   twofaDisable: (t: string, code: string) => req("/auth/2fa/disable", j({ code }), t),
+  changePassword: (t: string, current_password: string, new_password: string) =>
+    req("/auth/password/change", j({ current_password, new_password }), t),
   forgotPassword: (username: string) => req("/auth/password/forgot", j({ username })),
   resetPassword: (token: string, new_password: string) =>
     req("/auth/password/reset", j({ token, new_password })),

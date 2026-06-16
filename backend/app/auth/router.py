@@ -66,6 +66,11 @@ class ResetRequest(BaseModel):
     recovery_key: str | None = None  # se fornita, preserva l'accesso ai report
 
 
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str
+
+
 def _set_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         SESSION_COOKIE,
@@ -256,6 +261,24 @@ async def me(session: Session = Depends(get_current_session)) -> dict:
 def _require_user(session: Session) -> None:
     if session.kind != "user" or not session.user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+
+@router.post("/password/change")
+async def password_change(
+    body: ChangePassword,
+    session: Session = Depends(get_current_session),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    """Authenticated password change — preserves the keypair (report access kept)."""
+    _require_user(session)
+    user = await db.get(AppUser, uuid.UUID(session.user_id))
+    key = crypto.verify_password(body.current_password, user.salt, user.password_hash)
+    if key is None:
+        raise HTTPException(status_code=400, detail="Password attuale errata")
+    prv = crypto.decrypt_private_key(key, user.crypto_prv_key)
+    passwords.set_password_with_prv(user, body.new_password, prv)
+    await db.commit()
+    return {"status": "ok"}
 
 
 @router.post("/2fa/init")

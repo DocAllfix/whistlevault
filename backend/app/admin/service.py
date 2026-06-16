@@ -54,6 +54,7 @@ async def create_user(db: AsyncSession, session: Session, body: schemas.UserCrea
     tenant = await db.get(Tenant, session.tenant_id)
     escrow_pub = tenant.escrow_pub if tenant else ""
     recovery_key = passwords.provision_credentials(user, body.password, escrow_pub=escrow_pub or None)
+    user.password_change_needed = True  # force change on first login
     db.add(user)
     await db.flush()
 
