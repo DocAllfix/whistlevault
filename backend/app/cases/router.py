@@ -13,6 +13,7 @@ from app.cases.schemas import (
     IdentityRequestCreate,
     IdentityRequestResolve,
     PostponeRequest,
+    RedactionCreate,
     StatusChangeRequest,
 )
 from app.db.base import get_session
@@ -89,6 +90,28 @@ async def postpone(
     db: AsyncSession = Depends(get_session),
 ) -> dict:
     await service.postpone(db, session, report_id, body.days)
+    return {"status": "ok"}
+
+
+@router.post("/{report_id}/redactions")
+async def create_redaction(
+    report_id: uuid.UUID,
+    body: RedactionCreate,
+    session: Session = Depends(_handler),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    await service.create_redaction(db, session, report_id, body.reference, body.mask, body.permanent)
+    return {"status": "ok"}
+
+
+@router.delete("/{report_id}/redactions/{redaction_id}")
+async def delete_redaction(
+    report_id: uuid.UUID,
+    redaction_id: uuid.UUID,
+    session: Session = Depends(_handler),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    await service.delete_redaction(db, session, report_id, redaction_id)
     return {"status": "ok"}
 
 

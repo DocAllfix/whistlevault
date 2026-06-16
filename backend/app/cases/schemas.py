@@ -26,3 +26,9 @@ class IdentityRequestCreate(BaseModel):
 class IdentityRequestResolve(BaseModel):
     grant: bool
     motivation: str = ""
+
+
+class RedactionCreate(BaseModel):
+    reference: str  # "answers" oppure l'id di un commento
+    mask: list[str]  # sottostringhe da oscurare
+    permanent: bool = False  # se True riscrive il testo cifrato (irreversibile)

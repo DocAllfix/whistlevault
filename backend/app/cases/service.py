@@ -22,6 +22,7 @@ from app.db.models import (
     IdentityAccessRequest,
     IdentityAccessRequestCustodian,
     RecipientReport,
+    Redaction,
     Report,
     ReportAnswer,
     ReportFile,
@@ -44,6 +45,13 @@ class CaseForbidden(Exception):
 
 def _uid(session: Session) -> uuid.UUID:
     return uuid.UUID(session.user_id)
+
+
+def _mask_text(text: str, masks: list[str]) -> str:
+    for m in masks:
+        if m:
+            text = text.replace(m, "■" * max(4, len(m)))
+    return text
 
 
 async def _link(db: AsyncSession, report_id: uuid.UUID, user_id: uuid.UUID) -> RecipientReport | None:
@@ -182,6 +190,29 @@ async def get_detail(db: AsyncSession, session: Session, report_id: uuid.UUID) -
             link.wrapped_identity_prv_key, session.private_key
         )
         identity = json.loads(crypto.decrypt_content(id_prv, report.encrypted_identity))
+
+    # Apply temporary (reversible) redactions to the rendered view.
+    redactions = (
+        await db.scalars(select(Redaction).where(Redaction.report_id == report.id))
+    ).all()
+    answer_masks: list[str] = []
+    comment_masks: dict[str, list[str]] = {}
+    for r in redactions:
+        masks = (r.temporary_redaction or {}).get("mask", [])
+        if not masks:
+            continue
+        if r.reference_id == "answers":
+            answer_masks.extend(masks)
+        else:
+            comment_masks.setdefault(r.reference_id, []).extend(masks)
+    if answer_masks:
+        answers = {
+            k: (_mask_text(v, answer_masks) if isinstance(v, str) else v) for k, v in answers.items()
+        }
+    if comment_masks:
+        for c in visible:
+            if c["id"] in comment_masks:
+                c["content"] = _mask_text(c["content"], comment_masks[c["id"]])
 
     await audit.log(
         db, tenant_id=session.tenant_id, type="report_access", user_id=session.user_id, object_id=report.id
@@ -398,4 +429,71 @@ async def resolve_identity_request(
         object_id=iar.report_id,
         data={"granted": grant},
     )
+    await db.commit()
+
+
+# --- Redaction --------------------------------------------------------------
+async def create_redaction(
+    db: AsyncSession,
+    session: Session,
+    report_id: uuid.UUID,
+    reference: str,
+    mask: list[str],
+    permanent: bool,
+) -> None:
+    if not session.permissions.get("can_redact_information", False):
+        raise CaseForbidden("Permission denied")
+    report = await _get_report(db, session, report_id)
+    report_key = await _report_key(db, session, report)
+
+    if permanent:
+        if reference == "answers":
+            row = await db.scalar(select(ReportAnswer).where(ReportAnswer.report_id == report.id))
+            if row and row.answers.get("ciphertext"):
+                data = json.loads(crypto.decrypt_content(report_key, row.answers["ciphertext"]))
+                data = {
+                    k: (_mask_text(v, mask) if isinstance(v, str) else v) for k, v in data.items()
+                }
+                row.answers = {
+                    "ciphertext": crypto.encrypt_content(report.crypto_pub_key, json.dumps(data))
+                }
+        else:
+            try:
+                comment = await db.get(Comment, uuid.UUID(reference))
+            except ValueError:
+                comment = None
+            if comment and comment.report_id == report.id:
+                txt = crypto.decrypt_content(report_key, comment.content)
+                comment.content = crypto.encrypt_content(report.crypto_pub_key, _mask_text(txt, mask))
+        db.add(
+            Redaction(
+                report_id=report.id, reference_id=reference, entry="permanent",
+                permanent_redaction={"mask": mask},
+            )
+        )
+    else:
+        db.add(
+            Redaction(
+                report_id=report.id, reference_id=reference, entry="temporary",
+                temporary_redaction={"mask": mask},
+            )
+        )
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="redaction", user_id=session.user_id,
+        object_id=report.id, data={"permanent": permanent},
+    )
+    await db.commit()
+
+
+async def delete_redaction(
+    db: AsyncSession, session: Session, report_id: uuid.UUID, redaction_id: uuid.UUID
+) -> None:
+    if not session.permissions.get("can_redact_information", False):
+        raise CaseForbidden("Permission denied")
+    red = await db.get(Redaction, redaction_id)
+    if red is None or red.report_id != report_id:
+        raise CaseNotFound("Redaction not found")
+    if red.entry == "permanent":
+        raise CaseError("Cannot undo a permanent redaction")
+    await db.delete(red)
     await db.commit()
