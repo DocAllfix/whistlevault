@@ -50,20 +50,22 @@ async def submit_report(
             context_id=context_id,
             answers=body.answers,
             identity=body.identity,
+            wb_pub=body.wb_pub,
         )
     except service.ValidationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
+    # In zero-knowledge mode the server holds no report key (report_prv is None).
     session = Session(
         kind="whistleblower",
         tenant_id=DEFAULT_TENANT_ID,
         role="whistleblower",
         report_id=str(report.id),
-        report_key=report_prv,
+        report_key=report_prv or "",
     )
     token = store.create(session)
     _set_cookie(response, token)
-    return CreateReportResponse(report_id=str(report.id), receipt=receipt, token=token)
+    return CreateReportResponse(report_id=str(report.id), receipt=receipt or "", token=token)
 
 
 @router.get("/me")

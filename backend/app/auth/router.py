@@ -44,7 +44,9 @@ class LoginRequest(BaseModel):
 
 
 class ReceiptRequest(BaseModel):
-    receipt: str
+    receipt: str = ""
+    # Zero-knowledge re-entry: client sends sha256(wb_pub) instead of the receipt.
+    lookup: str | None = None
 
 
 class TwoFAConfirm(BaseModel):
@@ -143,23 +145,31 @@ async def login(
 async def receipt_auth(
     body: ReceiptRequest, response: Response, db: AsyncSession = Depends(get_session)
 ) -> dict:
-    if not ratelimit.allow(f"receipt:{body.receipt}", limit=5, window_seconds=60):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts"
-        )
-
-    report = await db.scalar(
-        select(Report).where(Report.receipt_hash == crypto.hash_receipt(body.receipt))
-    )
     invalid = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid receipt")
-    if report is None:
-        raise invalid
-    try:
-        report_key = crypto.unwrap_report_key_with_secret(
-            report.crypto_prv_key, body.receipt, report.receipt_salt
+
+    if body.lookup:
+        # Zero-knowledge re-entry: look up by sha256(wb_pub); the server does NOT
+        # derive any key. The client unseals/decrypts everything itself.
+        if not ratelimit.allow(f"receipt:{body.lookup}", limit=5, window_seconds=60):
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts")
+        report = await db.scalar(select(Report).where(Report.receipt_hash == body.lookup))
+        if report is None:
+            raise invalid
+        report_key = ""  # server holds no key for this report
+    else:
+        if not ratelimit.allow(f"receipt:{body.receipt}", limit=5, window_seconds=60):
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts")
+        report = await db.scalar(
+            select(Report).where(Report.receipt_hash == crypto.hash_receipt(body.receipt))
         )
-    except Exception:
-        raise invalid
+        if report is None:
+            raise invalid
+        try:
+            report_key = crypto.unwrap_report_key_with_secret(
+                report.crypto_prv_key, body.receipt, report.receipt_salt
+            )
+        except Exception:
+            raise invalid
 
     session = Session(
         kind="whistleblower",

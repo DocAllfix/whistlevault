@@ -89,8 +89,14 @@ def _validate_answers(questionnaire: Questionnaire, answers: dict) -> None:
 
 
 async def create_report(
-    db: AsyncSession, *, tenant_id: int, context_id: uuid.UUID, answers: dict, identity: dict | None = None
-) -> tuple[Report, str, str]:
+    db: AsyncSession,
+    *,
+    tenant_id: int,
+    context_id: uuid.UUID,
+    answers: dict,
+    identity: dict | None = None,
+    wb_pub: str | None = None,
+) -> tuple[Report, str | None, str | None]:
     context = await db.get(Context, context_id)
     if context is None or context.tenant_id != tenant_id:
         raise ValidationError("Invalid context")
@@ -102,8 +108,22 @@ async def create_report(
     score = _compute_score(questionnaire, answers)
 
     report_pub, report_prv = crypto.generate_keypair()
-    receipt = crypto.generate_receipt()
-    salt = crypto.new_salt()
+
+    if wb_pub:
+        # Zero-knowledge: seal the report key to the client receipt-derived public
+        # key. The server never sees the receipt and cannot decrypt on re-entry.
+        receipt = None
+        session_prv = None
+        receipt_hash = crypto.hash_receipt(wb_pub)
+        receipt_salt = ""
+        wrapped_prv = crypto.wrap_report_key_for_recipient(report_prv, wb_pub)
+    else:
+        # Legacy: server-side receipt key derivation.
+        receipt = crypto.generate_receipt()
+        session_prv = report_prv
+        receipt_salt = crypto.new_salt()
+        receipt_hash = crypto.hash_receipt(receipt)
+        wrapped_prv = crypto.wrap_report_key_for_secret(report_prv, receipt, receipt_salt)
 
     default_status = await db.scalar(
         select(SubmissionStatus)
@@ -122,10 +142,10 @@ async def create_report(
         status_id=default_status.id if default_status else None,
         score=score,
         important=bool(context.score_threshold_high and score >= context.score_threshold_high),
-        receipt_hash=crypto.hash_receipt(receipt),
-        receipt_salt=salt,
+        receipt_hash=receipt_hash,
+        receipt_salt=receipt_salt,
         crypto_pub_key=report_pub,
-        crypto_prv_key=crypto.wrap_report_key_for_secret(report_prv, receipt, salt),
+        crypto_prv_key=wrapped_prv,
         expiration_date=utcnow() + timedelta(days=context.tip_ttl_days),
     )
     db.add(report)
@@ -187,7 +207,7 @@ async def create_report(
     await notifications.notify_new_report(db, tenant_id=tenant_id, context_id=context_id)
 
     await db.commit()
-    return report, receipt, report_prv
+    return report, receipt, session_prv
 
 
 async def get_report_for_session(db: AsyncSession, session: Session) -> Report:
@@ -199,14 +219,7 @@ async def get_report_for_session(db: AsyncSession, session: Session) -> Report:
 
 async def get_whistleblower_view(db: AsyncSession, session: Session) -> dict:
     report = await get_report_for_session(db, session)
-
-    answer_row = await db.scalar(
-        select(ReportAnswer).where(ReportAnswer.report_id == report.id)
-    )
-    answers = {}
-    if answer_row:
-        answers = json.loads(crypto.decrypt_content(session.report_key, answer_row.answers["ciphertext"]))
-
+    answer_row = await db.scalar(select(ReportAnswer).where(ReportAnswer.report_id == report.id))
     comments = (
         await db.scalars(
             select(Comment)
@@ -214,16 +227,6 @@ async def get_whistleblower_view(db: AsyncSession, session: Session) -> dict:
             .order_by(Comment.created_at)
         )
     ).all()
-    comment_view = [
-        {
-            "id": str(c.id),
-            "author_kind": c.author_kind.value,
-            "content": crypto.decrypt_content(session.report_key, c.content),
-            "created_at": c.created_at.isoformat(),
-        }
-        for c in comments
-    ]
-
     files = (
         await db.scalars(
             select(ReportFile)
@@ -231,26 +234,75 @@ async def get_whistleblower_view(db: AsyncSession, session: Session) -> dict:
             .order_by(ReportFile.created_at)
         )
     ).all()
-    file_view = [
-        {
-            "id": str(f.id),
-            "name": crypto.decrypt_content(session.report_key, f.name) if f.name else "",
-            "content_type": f.content_type,
-            "size": f.size,
-            "author_kind": f.author_kind.value,
-        }
-        for f in files
-    ]
 
-    return {
+    base = {
         "report_id": str(report.id),
         "progressive": report.progressive,
         "status_id": str(report.status_id) if report.status_id else None,
         "created_at": report.created_at.isoformat(),
-        "answers": answers,
-        "comments": comment_view,
-        "files": file_view,
     }
+
+    if not session.report_key:
+        # Zero-knowledge: the server holds no key for this report → return
+        # ciphertext for client-side decryption (it never decrypts here).
+        base.update(
+            {
+                "zk": True,
+                "sealed_report_prv": report.crypto_prv_key,
+                "report_pub": report.crypto_pub_key,
+                "answers_ct": answer_row.answers.get("ciphertext", "") if answer_row else "",
+                "comments": [
+                    {
+                        "id": str(c.id),
+                        "author_kind": c.author_kind.value,
+                        "content_ct": c.content,
+                        "created_at": c.created_at.isoformat(),
+                    }
+                    for c in comments
+                ],
+                "files": [
+                    {
+                        "id": str(f.id),
+                        "name_ct": f.name,
+                        "content_type": f.content_type,
+                        "size": f.size,
+                        "author_kind": f.author_kind.value,
+                    }
+                    for f in files
+                ],
+            }
+        )
+        return base
+
+    # Legacy: server-side decryption (the session holds the report key).
+    base.update(
+        {
+            "zk": False,
+            "answers": json.loads(crypto.decrypt_content(session.report_key, answer_row.answers["ciphertext"]))
+            if answer_row
+            else {},
+            "comments": [
+                {
+                    "id": str(c.id),
+                    "author_kind": c.author_kind.value,
+                    "content": crypto.decrypt_content(session.report_key, c.content),
+                    "created_at": c.created_at.isoformat(),
+                }
+                for c in comments
+            ],
+            "files": [
+                {
+                    "id": str(f.id),
+                    "name": crypto.decrypt_content(session.report_key, f.name) if f.name else "",
+                    "content_type": f.content_type,
+                    "size": f.size,
+                    "author_kind": f.author_kind.value,
+                }
+                for f in files
+            ],
+        }
+    )
+    return base
 
 
 async def add_whistleblower_comment(db: AsyncSession, session: Session, content: str) -> None:
