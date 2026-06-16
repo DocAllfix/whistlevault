@@ -10,6 +10,8 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.prod
+deploy/.env.prod
 .pytest_cache/
 .ruff_cache/
 .coverage

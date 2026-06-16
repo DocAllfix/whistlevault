@@ -1,0 +1,48 @@
+# Production reverse proxy with automatic HTTPS (Let's Encrypt).
+# Replace the domain placeholders per client. The public portal and the
+# backoffice are served on SEPARATE hostnames; the backend API is never
+# exposed directly.
+
+# --- Public whistleblower portal -------------------------------------------
+{$PUBLIC_DOMAIN} {
+	encode gzip
+	root * /srv/public
+	# API calls proxied to the backend (same-origin → cookies/Bearer work).
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	# SPA fallback.
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+	}
+}
+
+# --- Backoffice (handlers) --------------------------------------------------
+# Restrict exposure: ideally behind VPN/SSO or an IP allow-list (see remote_ip).
+{$BACKOFFICE_DOMAIN} {
+	encode gzip
+	root * /srv/backoffice
+	# Example IP allow-list (uncomment and set ranges):
+	# @blocked not remote_ip 10.0.0.0/8 192.168.0.0/16
+	# respond @blocked 403
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+	}
+}

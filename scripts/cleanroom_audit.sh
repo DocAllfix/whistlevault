@@ -11,7 +11,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 # Product directories to scan (everything except the study reference).
-SCAN_DIRS=(backend frontend compliance scripts db)
+SCAN_DIRS=(backend frontend compliance scripts db deploy)
 
 # Markers that would betray copied GlobaLeaks code/identifiers.
 # (Word-ish patterns; case-insensitive.)
