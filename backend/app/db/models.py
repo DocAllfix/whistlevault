@@ -148,6 +148,12 @@ class Field(Base):
     type: Mapped[str] = mapped_column(Text, default="text", nullable=False)
     required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Stable key (persists across edits) used to reference this field in triggers.
+    key: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # Conditional logic: show/require this field only when the field with
+    # `trigger_field_key` has the answer `trigger_value`.
+    trigger_field_key: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    trigger_value: Mapped[str] = mapped_column(Text, default="", nullable=False)
 
     step: Mapped[Step] = relationship(back_populates="fields")
     options: Mapped[list["FieldOption"]] = relationship(

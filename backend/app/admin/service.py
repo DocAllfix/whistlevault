@@ -226,6 +226,9 @@ def _build_steps(q: Questionnaire, steps: list[schemas.StepIn]) -> None:
                     type=f.type,
                     required=f.required,
                     order=f.order,
+                    key=f.key or f"f_{uuid.uuid4().hex[:8]}",
+                    trigger_field_key=f.trigger_field_key,
+                    trigger_value=f.trigger_value,
                     options=[
                         FieldOption(label=o.label, order=o.order, score=o.score) for o in f.options
                     ],

@@ -3,7 +3,16 @@ import { api } from "../../api";
 import { useAuth } from "../../auth";
 
 type OptDraft = { label: string };
-type FieldDraft = { label: string; hint: string; type: string; required: boolean; options: OptDraft[] };
+type FieldDraft = {
+  label: string;
+  hint: string;
+  type: string;
+  required: boolean;
+  key: string;
+  trigger_field_key: string;
+  trigger_value: string;
+  options: OptDraft[];
+};
 type StepDraft = { label: string; description: string; fields: FieldDraft[] };
 type Draft = { name: string; steps: StepDraft[] };
 
@@ -39,6 +48,9 @@ export function Questionnaires() {
           hint: f.hint?.it ?? "",
           type: f.type,
           required: f.required,
+          key: f.key ?? "",
+          trigger_field_key: f.trigger_field_key ?? "",
+          trigger_value: f.trigger_value ?? "",
           options: f.options.map((o: any) => ({ label: o.label?.it ?? "" })),
         })),
       })),
@@ -58,6 +70,9 @@ export function Questionnaires() {
           type: f.type,
           required: f.required,
           order: fi,
+          key: f.key,
+          trigger_field_key: f.trigger_field_key,
+          trigger_value: f.trigger_value,
           options: f.options.map((o, oi) => ({ label: { it: o.label }, order: oi })),
         })),
       })),
@@ -142,6 +157,21 @@ export function Questionnaires() {
                   <input type="checkbox" checked={f.required} onChange={(e) => update((d) => { d.steps[si].fields[fi].required = e.target.checked; })} style={{ width: 20, height: 20 }} />
                 </div>
               </div>
+              <div className="row">
+                <div>
+                  <label>Chiave (per logica condizionale)</label>
+                  <input value={f.key} placeholder="es. categoria" onChange={(e) => update((d) => { d.steps[si].fields[fi].key = e.target.value; })} />
+                </div>
+                <div>
+                  <label>Mostra se campo (chiave)</label>
+                  <input value={f.trigger_field_key} placeholder="chiave del campo trigger" onChange={(e) => update((d) => { d.steps[si].fields[fi].trigger_field_key = e.target.value; })} />
+                </div>
+                <div>
+                  <label>…uguale a</label>
+                  <input value={f.trigger_value} placeholder="valore atteso" onChange={(e) => update((d) => { d.steps[si].fields[fi].trigger_value = e.target.value; })} />
+                </div>
+              </div>
+
               {(f.type === "select" || f.type === "multiselect") && (
                 <div>
                   <label>Opzioni</label>
@@ -159,7 +189,7 @@ export function Questionnaires() {
               </div>
             </div>
           ))}
-          <button className="btn btn-secondary btn-sm" onClick={() => update((d) => { d.steps[si].fields.push({ label: "", hint: "", type: "text", required: false, options: [] }); })}>
+          <button className="btn btn-secondary btn-sm" onClick={() => update((d) => { d.steps[si].fields.push({ label: "", hint: "", type: "text", required: false, key: "", trigger_field_key: "", trigger_value: "", options: [] }); })}>
             + Domanda
           </button>
         </div>

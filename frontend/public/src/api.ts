@@ -18,6 +18,9 @@ export interface Field {
   type: string;
   required: boolean;
   order: number;
+  key: string;
+  trigger_field_key: string;
+  trigger_value: string;
   options: FieldOption[];
 }
 export interface Step { id: string; label: Record<string, string>; description: Record<string, string>; order: number; fields: Field[]; }

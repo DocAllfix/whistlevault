@@ -61,16 +61,31 @@ def _compute_score(questionnaire: Questionnaire, answers: dict) -> int:
 
 
 def _validate_answers(questionnaire: Questionnaire, answers: dict) -> None:
-    field_ids = {str(f.id) for step in questionnaire.steps for f in step.fields}
+    fields = [f for step in questionnaire.steps for f in step.fields]
+    field_ids = {str(f.id) for f in fields}
     unknown = set(answers) - field_ids
     if unknown:
         raise ValidationError(f"Unknown fields: {sorted(unknown)}")
-    for step in questionnaire.steps:
-        for field in step.fields:
-            if field.required:
-                value = answers.get(str(field.id))
-                if value in (None, "", [], {}):
-                    raise ValidationError(f"Missing required field: {field.id}")
+
+    by_key = {f.key: f for f in fields if f.key}
+
+    def is_active(field) -> bool:
+        # A conditional field is active only when its trigger condition is met.
+        if not field.trigger_field_key:
+            return True
+        trigger = by_key.get(field.trigger_field_key)
+        if trigger is None:
+            return True
+        value = answers.get(str(trigger.id))
+        if isinstance(value, list):
+            return field.trigger_value in value
+        return value == field.trigger_value
+
+    for field in fields:
+        if field.required and is_active(field):
+            value = answers.get(str(field.id))
+            if value in (None, "", [], {}):
+                raise ValidationError(f"Missing required field: {field.id}")
 
 
 async def create_report(

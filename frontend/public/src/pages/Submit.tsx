@@ -49,10 +49,22 @@ export function Submit() {
   const steps = questionnaire?.steps ?? [];
   const currentStep = steps[stepIndex];
 
+  const keyToId = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const s of steps) for (const f of s.fields) if (f.key) m[f.key] = f.id;
+    return m;
+  }, [steps]);
+
+  function isVisible(field: Field): boolean {
+    if (!field.trigger_field_key) return true;
+    const v = answers[keyToId[field.trigger_field_key]];
+    return Array.isArray(v) ? (v as string[]).includes(field.trigger_value) : v === field.trigger_value;
+  }
+
   const missingRequired = useMemo(() => {
     if (!currentStep) return [];
-    return currentStep.fields.filter((f) => f.required && isEmpty(answers[f.id]));
-  }, [currentStep, answers]);
+    return currentStep.fields.filter((f) => isVisible(f) && f.required && isEmpty(answers[f.id]));
+  }, [currentStep, answers, keyToId]);
 
   function setValue(field: Field, v: FieldValue) {
     setAnswers((prev) => ({ ...prev, [field.id]: v }));
@@ -71,6 +83,7 @@ export function Submit() {
       const fileUploads: File[] = [];
       for (const step of steps) {
         for (const field of step.fields) {
+          if (!isVisible(field)) continue;  // skip hidden conditional fields
           const v = answers[field.id];
           if (v === undefined) continue;
           if (field.type === "file" || field.type === "voice") {
@@ -180,7 +193,7 @@ export function Submit() {
       <Stepper steps={steps.length} current={stepIndex} />
       <h1>{t(currentStep.label) || "Segnalazione"}</h1>
       {t(currentStep.description) && <p>{t(currentStep.description)}</p>}
-      {currentStep.fields.map((f) => (
+      {currentStep.fields.filter(isVisible).map((f) => (
         <FieldInput key={f.id} field={f} value={answers[f.id]} onChange={(v) => setValue(f, v)} />
       ))}
       {missingRequired.length > 0 && (

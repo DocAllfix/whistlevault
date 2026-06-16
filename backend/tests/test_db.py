@@ -4,6 +4,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.orm import selectinload
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
@@ -14,6 +15,7 @@ from app.db.models import (
     ContextRecipient,
     Field,
     Questionnaire,
+    Step,
     SubmissionStatus,
 )
 from app.db.seed import seed
@@ -48,14 +50,18 @@ async def test_seed_creates_expected_data(session):
     n_status = await session.scalar(select(func.count()).select_from(SubmissionStatus))
     assert n_status == 3
 
-    # Default questionnaire with one step and four fields
-    q = await session.scalar(select(Questionnaire).where(Questionnaire.name == "default"))
+    # Default questionnaire with one step and four fields (eager-loaded for isolation)
+    q = await session.scalar(
+        select(Questionnaire)
+        .where(Questionnaire.name == "default")
+        .options(selectinload(Questionnaire.steps).selectinload(Step.fields).selectinload(Field.options))
+    )
     assert q is not None
     assert len(q.steps) == 1
     assert len(q.steps[0].fields) == 4
 
     # The 'category' select field has options
-    category = await session.scalar(select(Field).where(Field.type == "select"))
+    category = next(f for f in q.steps[0].fields if f.type == "select")
     assert len(category.options) == 5
 
     # Default context linked to questionnaire, admin is a recipient

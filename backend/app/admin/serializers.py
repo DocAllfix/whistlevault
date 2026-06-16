@@ -21,6 +21,9 @@ def serialize_questionnaire(q: Questionnaire) -> dict:
                         "type": field.type,
                         "required": field.required,
                         "order": field.order,
+                        "key": field.key,
+                        "trigger_field_key": field.trigger_field_key,
+                        "trigger_value": field.trigger_value,
                         "options": [
                             {"id": str(o.id), "label": o.label, "order": o.order, "score": o.score}
                             for o in field.options

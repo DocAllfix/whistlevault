@@ -64,6 +64,9 @@ class FieldIn(BaseModel):
     type: str = "text"
     required: bool = False
     order: int = 0
+    key: str = ""
+    trigger_field_key: str = ""
+    trigger_value: str = ""
     options: list[FieldOptionIn] = []
 
 
