@@ -64,6 +64,7 @@ def serialize_user(u: AppUser) -> dict:
             "can_delete_submission": u.can_delete_submission,
             "can_postpone_expiration": u.can_postpone_expiration,
             "can_grant_access_to_reports": u.can_grant_access_to_reports,
+            "can_transfer_access_to_reports": u.can_transfer_access_to_reports,
             "can_redact_information": u.can_redact_information,
             "can_mask_information": u.can_mask_information,
             "can_reopen_reports": u.can_reopen_reports,

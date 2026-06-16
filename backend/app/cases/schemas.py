@@ -28,6 +28,10 @@ class IdentityRequestResolve(BaseModel):
     motivation: str = ""
 
 
+class AccessRequest(BaseModel):
+    user_id: uuid.UUID
+
+
 class RedactionCreate(BaseModel):
     reference: str  # "answers" oppure l'id di un commento
     mask: list[str]  # sottostringhe da oscurare

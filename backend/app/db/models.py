@@ -92,6 +92,7 @@ class AppUser(TimestampMixin, Base):
     can_delete_submission: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     can_postpone_expiration: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     can_grant_access_to_reports: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    can_transfer_access_to_reports: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     can_redact_information: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     can_mask_information: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     can_reopen_reports: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

@@ -9,6 +9,7 @@ from app.auth.deps import require_roles
 from app.auth.sessions import Session
 from app.cases import service
 from app.cases.schemas import (
+    AccessRequest,
     HandlerCommentRequest,
     IdentityRequestCreate,
     IdentityRequestResolve,
@@ -104,6 +105,39 @@ async def postpone(
     db: AsyncSession = Depends(get_session),
 ) -> dict:
     await service.postpone(db, session, report_id, body.days)
+    return {"status": "ok"}
+
+
+@router.post("/{report_id}/grant")
+async def grant_access(
+    report_id: uuid.UUID,
+    body: AccessRequest,
+    session: Session = Depends(_handler),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    await service.grant_access(db, session, report_id, body.user_id)
+    return {"status": "ok"}
+
+
+@router.post("/{report_id}/transfer")
+async def transfer_access(
+    report_id: uuid.UUID,
+    body: AccessRequest,
+    session: Session = Depends(_handler),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    await service.transfer_access(db, session, report_id, body.user_id)
+    return {"status": "ok"}
+
+
+@router.post("/{report_id}/revoke")
+async def revoke_access(
+    report_id: uuid.UUID,
+    body: AccessRequest,
+    session: Session = Depends(_handler),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    await service.revoke_access(db, session, report_id, body.user_id)
     return {"status": "ok"}
 
 

@@ -483,6 +483,69 @@ async def export_report(
     return f"segnalazione-{report.progressive}.zip", buf.getvalue()
 
 
+# --- Grant / transfer / revoke access --------------------------------------
+async def _grant_to(db: AsyncSession, report: Report, report_key: str, target_id: uuid.UUID) -> None:
+    target = await db.get(AppUser, target_id)
+    if target is None or target.tenant_id != report.tenant_id or not target.crypto_pub_key:
+        raise CaseError("Invalid target user")
+    wrapped = crypto.wrap_report_key_for_recipient(report_key, target.crypto_pub_key)
+    link = await _link(db, report.id, target_id)
+    if link is None:
+        db.add(RecipientReport(report_id=report.id, recipient_id=target_id, wrapped_tip_prv_key=wrapped))
+    else:
+        link.wrapped_tip_prv_key = wrapped
+
+
+async def grant_access(
+    db: AsyncSession, session: Session, report_id: uuid.UUID, target_id: uuid.UUID
+) -> None:
+    if not session.permissions.get("can_grant_access_to_reports", False):
+        raise CaseForbidden("Permission denied")
+    report = await _get_report(db, session, report_id)
+    report_key = await _report_key(db, session, report)  # granter must hold the key
+    await _grant_to(db, report, report_key, target_id)
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="grant_access", user_id=session.user_id,
+        object_id=report.id, data={"target": str(target_id)},
+    )
+    await db.commit()
+
+
+async def transfer_access(
+    db: AsyncSession, session: Session, report_id: uuid.UUID, target_id: uuid.UUID
+) -> None:
+    if not session.permissions.get("can_transfer_access_to_reports", False):
+        raise CaseForbidden("Permission denied")
+    report = await _get_report(db, session, report_id)
+    report_key = await _report_key(db, session, report)
+    await _grant_to(db, report, report_key, target_id)
+    own = await _link(db, report.id, _uid(session))  # give up own access
+    if own:
+        await db.delete(own)
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="transfer_access", user_id=session.user_id,
+        object_id=report.id, data={"target": str(target_id)},
+    )
+    await db.commit()
+
+
+async def revoke_access(
+    db: AsyncSession, session: Session, report_id: uuid.UUID, target_id: uuid.UUID
+) -> None:
+    if not session.permissions.get("can_grant_access_to_reports", False):
+        raise CaseForbidden("Permission denied")
+    report = await _get_report(db, session, report_id)
+    await _report_key(db, session, report)
+    link = await _link(db, report.id, target_id)
+    if link:
+        await db.delete(link)
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="revoke_access", user_id=session.user_id,
+        object_id=report.id, data={"target": str(target_id)},
+    )
+    await db.commit()
+
+
 # --- Redaction --------------------------------------------------------------
 async def create_redaction(
     db: AsyncSession,
