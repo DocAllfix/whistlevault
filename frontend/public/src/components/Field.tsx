@@ -1,5 +1,58 @@
+import { useRef, useState } from "react";
 import { Field as FieldModel } from "../api";
 import { t } from "./Layout";
+
+function VoiceRecorder({ onChange }: { onChange: (v: File[]) => void }) {
+  const [recording, setRecording] = useState(false);
+  const [url, setUrl] = useState("");
+  const [err, setErr] = useState("");
+  const recRef = useRef<MediaRecorder | null>(null);
+  const chunks = useRef<BlobPart[]>([]);
+
+  async function start() {
+    setErr("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      chunks.current = [];
+      rec.ondataavailable = (e) => chunks.current.push(e.data);
+      rec.onstop = () => {
+        const blob = new Blob(chunks.current, { type: "audio/webm" });
+        setUrl(URL.createObjectURL(blob));
+        onChange([new File([blob], "registrazione-vocale.webm", { type: "audio/webm" })]);
+        stream.getTracks().forEach((tr) => tr.stop());
+      };
+      rec.start();
+      recRef.current = rec;
+      setRecording(true);
+    } catch {
+      setErr("Microfono non disponibile o permesso negato.");
+    }
+  }
+
+  function stop() {
+    recRef.current?.stop();
+    setRecording(false);
+  }
+
+  return (
+    <div>
+      <div className="btn-row" style={{ marginTop: 0 }}>
+        {!recording ? (
+          <button type="button" className="btn btn-secondary" onClick={start}>
+            ● Registra messaggio vocale
+          </button>
+        ) : (
+          <button type="button" className="btn btn-danger" onClick={stop}>
+            ■ Ferma registrazione
+          </button>
+        )}
+      </div>
+      {url && <audio controls src={url} style={{ marginTop: 8, width: "100%" }} />}
+      {err && <p className="error-text">{err}</p>}
+    </div>
+  );
+}
 
 export type FieldValue = string | string[] | File[];
 
@@ -106,6 +159,8 @@ export function FieldInput({
             onChange={(e) => onChange(Array.from(e.target.files ?? []))}
           />
         );
+      case "voice":
+        return <VoiceRecorder onChange={(files) => onChange(files)} />;
       default:
         return (
           <input

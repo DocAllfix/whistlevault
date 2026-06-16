@@ -73,7 +73,7 @@ export function Submit() {
         for (const field of step.fields) {
           const v = answers[field.id];
           if (v === undefined) continue;
-          if (field.type === "file") {
+          if (field.type === "file" || field.type === "voice") {
             const files = v as File[];
             if (files.length) {
               payload[field.id] = files.map((f) => f.name);

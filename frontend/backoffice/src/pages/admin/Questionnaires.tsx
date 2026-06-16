@@ -7,7 +7,7 @@ type FieldDraft = { label: string; hint: string; type: string; required: boolean
 type StepDraft = { label: string; description: string; fields: FieldDraft[] };
 type Draft = { name: string; steps: StepDraft[] };
 
-const FIELD_TYPES = ["text", "textarea", "select", "multiselect", "date", "file"];
+const FIELD_TYPES = ["text", "textarea", "select", "multiselect", "date", "file", "voice"];
 
 const emptyDraft = (): Draft => ({ name: "", steps: [{ label: "", description: "", fields: [] }] });
 
