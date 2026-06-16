@@ -4,9 +4,9 @@
 audit-friendly, e questi file lo supportano così come sono. Il backend non è mai esposto
 direttamente (tutto passa da Caddy, con TLS automatico).
 
-**Domini**: il dominio-brand lo possediamo **noi** (es. `segnalazioni-sicure.it`, da scegliere).
-Ogni cliente riceve **sottodomini distinti e gratuiti** — `acme.<brand>` (portale) e
-`acme-gestione.<brand>` (backoffice) — che puntano alla sua VPS. **Il cliente non compra né
+**Domini**: il dominio-brand lo possediamo **noi**: **`whistlevault.eu`**.
+Ogni cliente riceve **sottodomini distinti e gratuiti** — `acme.whistlevault.eu` (portale) e
+`acme-gestione.whistlevault.eu` (backoffice) — che puntano alla sua VPS. **Il cliente non compra né
 configura nulla.** Il portale mostra logo/colori del cliente (white-label via `tenant.settings`).
 
 Per i passi operativi dettagliati (onboarding, backup, update, monitor) vedi

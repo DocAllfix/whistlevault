@@ -4,15 +4,15 @@ Comandi e passi per gestire le istanze. Modello scelto: **una VPS dedicata per c
 sottodomini distinti sul **nostro** dominio-brand (`WB_BASE_DOMAIN`), TLS automatico.
 Il cliente non configura nulla.
 
-> Prerequisito una-tantum: registrare **un** dominio-brand (es. `segnalazioni-sicure.it`).
-> I sottodomini sono illimitati e gratuiti.
+> Prerequisito una-tantum: registrare il dominio-brand **`whistlevault.eu`**.
+> I sottodomini (`acme.whistlevault.eu`, ecc.) sono illimitati e gratuiti.
 
 ## Onboarding di un nuovo cliente (~30 min)
 1. **VPS** in UE con Docker installato. Annota l'IP.
 2. **DNS** (nel pannello del nostro dominio-brand): due record **A** → IP della VPS
    ```
-   acme            A   <IP_VPS>     →  acme.<brand>            (portale pubblico)
-   acme-gestione   A   <IP_VPS>     →  acme-gestione.<brand>   (backoffice)
+   acme            A   <IP_VPS>     →  acme.whistlevault.eu            (portale pubblico)
+   acme-gestione   A   <IP_VPS>     →  acme-gestione.whistlevault.eu   (backoffice)
    ```
 3. **Codice + env** sulla VPS:
    ```bash
@@ -25,7 +25,7 @@ Il cliente non configura nulla.
    docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up -d --build
    ```
    Esegue da solo: migrazioni DB + seed + admin iniziale. Caddy ottiene il TLS automaticamente.
-5. **Configura** dal backoffice (`https://acme-gestione.<brand>`): cambia password admin,
+5. **Configura** dal backoffice (`https://acme-gestione.whistlevault.eu`): cambia password admin,
    crea canali, questionario (editor), gestori/custodi, e **branding** (logo/colori/testi →
    il portale assume l'aspetto del cliente).
 6. **Compliance**: pubblica policy + informativa (`compliance/`), firma il DPA art. 28.
@@ -34,7 +34,7 @@ Il cliente non configura nulla.
 ```bash
 docker compose -f deploy/docker-compose.prod.yml ps           # stato
 docker compose -f deploy/docker-compose.prod.yml logs -f api  # log (no PII/IP)
-curl -fsS https://acme.<brand>/api/health                     # salute
+curl -fsS https://acme.whistlevault.eu/api/health                     # salute
 ```
 Audit degli accessi: dal backoffice → sezione **Audit log**.
 
@@ -54,7 +54,7 @@ docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up 
 
 ## Secondo cliente
 Ripeti l'onboarding su una **seconda VPS** con il suo `.env.prod`, i suoi sottodomini
-(`beta.<brand>`, `beta-gestione.<brand>`) e i record DNS → IP della seconda VPS.
+(`beta.whistlevault.eu`, `beta-gestione.whistlevault.eu`) e i record DNS → IP della seconda VPS.
 Dati fisicamente separati.
 
 ## Antivirus allegati (ClamAV) — rinviato

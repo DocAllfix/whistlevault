@@ -1,6 +1,6 @@
 # Per-client routing template. To onboard a client, copy this file to
 # "<client>.caddy" and replace __CLIENT__ and __BASE__ (e.g. with sed):
-#   sed 's/__CLIENT__/acme/g; s/__BASE__/segnalazioni-sicure.it/g' \
+#   sed 's/__CLIENT__/acme/g; s/__BASE__/whistlevault.eu/g' \
 #       _TEMPLATE.caddy > acme.caddy
 # then reload:  docker compose exec proxy caddy reload --config /etc/caddy/Caddyfile
 #
