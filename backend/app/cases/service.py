@@ -5,8 +5,10 @@ report key with their own private key (held in the session). A handler with no
 assignment to a report cannot read it.
 """
 
+import io
 import json
 import uuid
+import zipfile
 from datetime import timedelta
 
 from sqlalchemy import func, select
@@ -430,6 +432,53 @@ async def resolve_identity_request(
         data={"granted": grant},
     )
     await db.commit()
+
+
+# --- Export -----------------------------------------------------------------
+async def export_report(
+    db: AsyncSession, session: Session, report_id: uuid.UUID
+) -> tuple[str, bytes]:
+    """Build an in-memory ZIP with decrypted answers, messages and attachments."""
+    report = await _get_report(db, session, report_id)
+    report_key = await _report_key(db, session, report)
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        answer_row = await db.scalar(select(ReportAnswer).where(ReportAnswer.report_id == report.id))
+        answers = (
+            json.loads(crypto.decrypt_content(report_key, answer_row.answers["ciphertext"]))
+            if answer_row
+            else {}
+        )
+        z.writestr("segnalazione.json", json.dumps(answers, ensure_ascii=False, indent=2))
+
+        comments = (
+            await db.scalars(
+                select(Comment).where(Comment.report_id == report.id).order_by(Comment.created_at)
+            )
+        ).all()
+        lines = []
+        for c in comments:
+            who = "Segnalante" if c.author_kind.value == "whistleblower" else "Gestore"
+            lines.append(
+                f"[{c.created_at.isoformat()}] {who} ({c.visibility.value}): "
+                f"{crypto.decrypt_content(report_key, c.content)}"
+            )
+        z.writestr("messaggi.txt", "\n".join(lines) if lines else "(nessun messaggio)")
+
+        files = (
+            await db.scalars(select(ReportFile).where(ReportFile.report_id == report.id))
+        ).all()
+        for f in files:
+            name = crypto.decrypt_content(report_key, f.name) if f.name else f"allegato-{f.id}"
+            safe = name.replace("/", "_").replace("\\", "_")
+            z.writestr(f"allegati/{safe}", storage.load_decrypted(report_key, f.reference_id))
+
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="export", user_id=session.user_id, object_id=report.id
+    )
+    await db.commit()
+    return f"segnalazione-{report.progressive}.zip", buf.getvalue()
 
 
 # --- Redaction --------------------------------------------------------------

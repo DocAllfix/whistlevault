@@ -82,6 +82,20 @@ async def download_file(
     )
 
 
+@router.get("/{report_id}/export")
+async def export_case(
+    report_id: uuid.UUID,
+    session: Session = Depends(_handler),
+    db: AsyncSession = Depends(get_session),
+) -> Response:
+    name, content = await service.export_report(db, session, report_id)
+    return Response(
+        content=content,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )
+
+
 @router.post("/{report_id}/postpone")
 async def postpone(
     report_id: uuid.UUID,
