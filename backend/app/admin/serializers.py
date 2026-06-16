@@ -22,7 +22,7 @@ def serialize_questionnaire(q: Questionnaire) -> dict:
                         "required": field.required,
                         "order": field.order,
                         "options": [
-                            {"id": str(o.id), "label": o.label, "order": o.order}
+                            {"id": str(o.id), "label": o.label, "order": o.order, "score": o.score}
                             for o in field.options
                         ],
                     }
@@ -41,6 +41,8 @@ def serialize_context(ctx: Context, recipient_ids: list[str]) -> dict:
         "description": ctx.description,
         "questionnaire_id": str(ctx.questionnaire_id) if ctx.questionnaire_id else None,
         "tip_ttl_days": ctx.tip_ttl_days,
+        "score_threshold_medium": ctx.score_threshold_medium,
+        "score_threshold_high": ctx.score_threshold_high,
         "hidden": ctx.hidden,
         "order": ctx.order,
         "recipient_ids": recipient_ids,

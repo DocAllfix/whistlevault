@@ -17,6 +17,7 @@ from app.db.models import (
     Comment,
     Context,
     ContextRecipient,
+    Field,
     Questionnaire,
     RecipientReport,
     Report,
@@ -36,8 +37,27 @@ async def _load_questionnaire(db: AsyncSession, questionnaire_id) -> Questionnai
     return await db.scalar(
         select(Questionnaire)
         .where(Questionnaire.id == questionnaire_id)
-        .options(selectinload(Questionnaire.steps).selectinload(Step.fields))
+        .options(
+            selectinload(Questionnaire.steps).selectinload(Step.fields).selectinload(Field.options)
+        )
     )
+
+
+def _compute_score(questionnaire: Questionnaire, answers: dict) -> int:
+    """Sum the score of the chosen options (select/multiselect) → risk score."""
+    total = 0
+    for step in questionnaire.steps:
+        for field in step.fields:
+            if field.type not in ("select", "multiselect"):
+                continue
+            value = answers.get(str(field.id))
+            if value is None:
+                continue
+            chosen = set(value if isinstance(value, list) else [value])
+            for opt in field.options:
+                if set(opt.label.values()) & chosen:
+                    total += opt.score
+    return total
 
 
 def _validate_answers(questionnaire: Questionnaire, answers: dict) -> None:
@@ -64,6 +84,7 @@ async def create_report(
     if questionnaire is None:
         raise ValidationError("Context has no questionnaire")
     _validate_answers(questionnaire, answers)
+    score = _compute_score(questionnaire, answers)
 
     report_pub, report_prv = crypto.generate_keypair()
     receipt = crypto.generate_receipt()
@@ -84,6 +105,8 @@ async def create_report(
         context_id=context_id,
         progressive=(max_progressive or 0) + 1,
         status_id=default_status.id if default_status else None,
+        score=score,
+        important=bool(context.score_threshold_high and score >= context.score_threshold_high),
         receipt_hash=crypto.hash_receipt(receipt),
         receipt_salt=salt,
         crypto_pub_key=report_pub,

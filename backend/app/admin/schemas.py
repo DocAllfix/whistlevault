@@ -31,6 +31,8 @@ class ContextCreate(BaseModel):
     description: dict[str, str] = {}
     questionnaire_id: uuid.UUID | None = None
     tip_ttl_days: int = 90
+    score_threshold_medium: int = 0
+    score_threshold_high: int = 0
     recipient_ids: list[uuid.UUID] = []
     hidden: bool = False
     order: int = 0
@@ -41,6 +43,8 @@ class ContextUpdate(BaseModel):
     description: dict[str, str] | None = None
     questionnaire_id: uuid.UUID | None = None
     tip_ttl_days: int | None = None
+    score_threshold_medium: int | None = None
+    score_threshold_high: int | None = None
     recipient_ids: list[uuid.UUID] | None = None
     hidden: bool | None = None
     order: int | None = None
@@ -49,6 +53,7 @@ class ContextUpdate(BaseModel):
 class FieldOptionIn(BaseModel):
     label: dict[str, str] = {}
     order: int = 0
+    score: int = 0
 
 
 class FieldIn(BaseModel):

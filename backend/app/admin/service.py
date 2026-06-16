@@ -144,6 +144,8 @@ async def create_context(db: AsyncSession, session: Session, body: schemas.Conte
         description=body.description,
         questionnaire_id=body.questionnaire_id,
         tip_ttl_days=body.tip_ttl_days,
+        score_threshold_medium=body.score_threshold_medium,
+        score_threshold_high=body.score_threshold_high,
         hidden=body.hidden,
         order=body.order,
     )
@@ -172,7 +174,10 @@ async def update_context(
     ctx = await db.get(Context, context_id)
     if ctx is None or ctx.tenant_id != session.tenant_id:
         raise CaseNotFound("Context not found")
-    for attr in ("name", "description", "questionnaire_id", "tip_ttl_days", "hidden", "order"):
+    for attr in (
+        "name", "description", "questionnaire_id", "tip_ttl_days",
+        "score_threshold_medium", "score_threshold_high", "hidden", "order",
+    ):
         value = getattr(body, attr)
         if value is not None:
             setattr(ctx, attr, value)
@@ -218,7 +223,9 @@ def _build_steps(q: Questionnaire, steps: list[schemas.StepIn]) -> None:
                     type=f.type,
                     required=f.required,
                     order=f.order,
-                    options=[FieldOption(label=o.label, order=o.order) for o in f.options],
+                    options=[
+                        FieldOption(label=o.label, order=o.order, score=o.score) for o in f.options
+                    ],
                 )
                 for f in s.fields
             ],

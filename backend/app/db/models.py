@@ -160,6 +160,7 @@ class FieldOption(Base):
     )
     label: Mapped[dict] = mapped_column(JSONType, default=dict, nullable=False)
     order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # peso di rischio
 
     field: Mapped[Field] = relationship(back_populates="options")
 
@@ -211,6 +212,9 @@ class Context(Base):
     questionnaire_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("questionnaire.id"))
     tip_ttl_days: Mapped[int] = mapped_column(Integer, default=90, nullable=False)  # retention
     tip_reminder_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # Soglie di rischio: punteggio >= high → "importante"; >= medium → media priorità.
+    score_threshold_medium: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    score_threshold_high: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     allow_recipient_selection: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     select_all_recipients: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     hidden: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
