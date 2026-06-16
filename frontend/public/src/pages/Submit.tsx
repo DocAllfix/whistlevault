@@ -2,12 +2,27 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, Field, PublicContext, Questionnaire } from "../api";
 import { FieldInput, FieldValue } from "../components/Field";
-import { t } from "../components/Layout";
+import { loc, useI18n } from "../i18n";
 
 type Phase = "loading" | "channel" | "form" | "review" | "submitting" | "error";
 
+function Stepper({ steps, current }: { steps: number; current: number }) {
+  const { t } = useI18n();
+  return (
+    <div className="stepper" aria-label={t("step")}>
+      {Array.from({ length: steps }).map((_, i) => (
+        <span key={i} className={`step-pill ${i === current ? "active" : i < current ? "done" : ""}`}>
+          {t("step")} {i + 1}
+        </span>
+      ))}
+      <span className={`step-pill ${current >= steps ? "active" : ""}`}>{t("summary")}</span>
+    </div>
+  );
+}
+
 export function Submit() {
   const navigate = useNavigate();
+  const { t, lang } = useI18n();
   const [phase, setPhase] = useState<Phase>("loading");
   const [error, setError] = useState("");
   const [contexts, setContexts] = useState<PublicContext[]>([]);
@@ -29,7 +44,7 @@ export function Submit() {
   }, []);
 
   function fail(e: unknown) {
-    setError(e instanceof Error ? e.message : "Errore imprevisto");
+    setError(e instanceof Error ? e.message : "Error");
     setPhase("error");
   }
 
@@ -83,7 +98,7 @@ export function Submit() {
       const fileUploads: File[] = [];
       for (const step of steps) {
         for (const field of step.fields) {
-          if (!isVisible(field)) continue;  // skip hidden conditional fields
+          if (!isVisible(field)) continue;
           const v = answers[field.id];
           if (v === undefined) continue;
           if (field.type === "file" || field.type === "voice") {
@@ -100,25 +115,19 @@ export function Submit() {
       const idPayload: Record<string, string> = {};
       if (identity.nome.trim()) idPayload["nome"] = identity.nome.trim();
       if (identity.contatto.trim()) idPayload["contatto"] = identity.contatto.trim();
-      const res = await api.submit(
-        contextId,
-        payload,
-        Object.keys(idPayload).length ? idPayload : undefined,
-      );
-      for (const f of fileUploads) {
-        await api.uploadFile(res.token, f);
-      }
+      const res = await api.submit(contextId, payload, Object.keys(idPayload).length ? idPayload : undefined);
+      for (const f of fileUploads) await api.uploadFile(res.token, f);
       navigate("/ricevuta", { state: { receipt: res.receipt } });
     } catch (e) {
       fail(e);
     }
   }
 
-  if (phase === "loading" || phase === "submitting") return <p>Caricamento…</p>;
+  if (phase === "loading" || phase === "submitting") return <p>{t("loading")}</p>;
   if (phase === "error")
     return (
       <>
-        <h1>Si è verificato un problema</h1>
+        <h1>{t("problem")}</h1>
         <p className="error-text">{error}</p>
       </>
     );
@@ -126,14 +135,14 @@ export function Submit() {
   if (phase === "channel")
     return (
       <>
-        <h1>Scegli il canale</h1>
-        <p>Seleziona l'ambito della tua segnalazione.</p>
+        <h1>{t("choose_channel")}</h1>
+        <p>{t("choose_channel_sub")}</p>
         {contexts.map((c) => (
           <div className="card" key={c.id}>
-            <h2 style={{ marginTop: 0 }}>{t(c.name)}</h2>
-            <p>{t(c.description)}</p>
+            <h2 style={{ marginTop: 0 }}>{loc(c.name, lang)}</h2>
+            <p>{loc(c.description, lang)}</p>
             <button className="btn btn-primary" onClick={() => selectContext(c.id)}>
-              Seleziona
+              {t("select")}
             </button>
           </div>
         ))}
@@ -144,90 +153,65 @@ export function Submit() {
     return (
       <>
         <Stepper steps={steps.length} current={steps.length} />
-        <h1>Rivedi e invia</h1>
-        <p>Controlla le informazioni inserite prima dell'invio.</p>
+        <h1>{t("review_title")}</h1>
+        <p>{t("review_sub")}</p>
         {steps.map((s) =>
           s.fields.map((f) => (
             <div className="card" key={f.id} style={{ padding: 16 }}>
-              <strong>{t(f.label)}</strong>
+              <strong>{loc(f.label, lang)}</strong>
               <div className="muted">{formatValue(answers[f.id])}</div>
             </div>
           )),
         )}
 
-        <h2>Identità (facoltativa)</h2>
+        <h2>{t("identity_optional")}</h2>
         <div className="notice">
-          Puoi segnalare in forma <strong>anonima</strong>. Se scegli di fornire la tua identità,
-          sarà <strong>cifrata separatamente</strong> e un gestore potrà vederla solo previa
-          autorizzazione di un custode.
+          {t("identity_note_pre")}
+          <strong>{t("identity_note_anon")}</strong>
+          {t("identity_note_mid")}
+          <strong>{t("identity_note_enc")}</strong>
+          {t("identity_note_post")}
         </div>
-        <label htmlFor="id-nome">Nome</label>
-        <input
-          id="id-nome"
-          type="text"
-          value={identity.nome}
-          onChange={(e) => setIdentity({ ...identity, nome: e.target.value })}
-        />
-        <label htmlFor="id-contatto">Contatto (email o telefono)</label>
-        <input
-          id="id-contatto"
-          type="text"
-          value={identity.contatto}
-          onChange={(e) => setIdentity({ ...identity, contatto: e.target.value })}
-        />
+        <label htmlFor="id-nome">{t("name")}</label>
+        <input id="id-nome" type="text" value={identity.nome} onChange={(e) => setIdentity({ ...identity, nome: e.target.value })} />
+        <label htmlFor="id-contatto">{t("contact")}</label>
+        <input id="id-contatto" type="text" value={identity.contatto} onChange={(e) => setIdentity({ ...identity, contatto: e.target.value })} />
 
         <div className="btn-row">
           <button className="btn btn-secondary" onClick={() => setPhase("form")}>
-            Indietro
+            {t("back")}
           </button>
           <button className="btn btn-primary" onClick={submit}>
-            Invia segnalazione
+            {t("submit_report")}
           </button>
         </div>
       </>
     );
 
-  // form phase
   return (
     <>
       <Stepper steps={steps.length} current={stepIndex} />
-      <h1>{t(currentStep.label) || "Segnalazione"}</h1>
-      {t(currentStep.description) && <p>{t(currentStep.description)}</p>}
+      <h1>{loc(currentStep.label, lang) || t("brand")}</h1>
+      {loc(currentStep.description, lang) && <p>{loc(currentStep.description, lang)}</p>}
       {currentStep.fields.filter(isVisible).map((f) => (
         <FieldInput key={f.id} field={f} value={answers[f.id]} onChange={(v) => setValue(f, v)} />
       ))}
       {missingRequired.length > 0 && (
         <p className="error-text" role="alert" style={{ marginTop: 16 }}>
-          Compila i campi obbligatori per continuare.
+          {t("fill_required")}
         </p>
       )}
       <div className="btn-row">
         {stepIndex > 0 && (
           <button className="btn btn-secondary" onClick={() => setStepIndex(stepIndex - 1)}>
-            Indietro
+            {t("back")}
           </button>
         )}
         <button className="btn btn-primary" onClick={next} disabled={missingRequired.length > 0}>
-          {stepIndex < steps.length - 1 ? "Avanti" : "Rivedi"}
+          {stepIndex < steps.length - 1 ? t("next") : t("review")}
         </button>
       </div>
     </>
-  );
-}
-
-function Stepper({ steps, current }: { steps: number; current: number }) {
-  return (
-    <div className="stepper" aria-label="Avanzamento">
-      {Array.from({ length: steps }).map((_, i) => (
-        <span
-          key={i}
-          className={`step-pill ${i === current ? "active" : i < current ? "done" : ""}`}
-        >
-          Passo {i + 1}
-        </span>
-      ))}
-      <span className={`step-pill ${current >= steps ? "active" : ""}`}>Riepilogo</span>
-    </div>
   );
 }
 

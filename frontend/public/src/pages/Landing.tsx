@@ -1,41 +1,37 @@
 import { Link } from "react-router-dom";
+import { useI18n } from "../i18n";
 
 export function Landing() {
+  const { t } = useI18n();
   return (
     <>
-      <h1>Segnala in modo sicuro e riservato</h1>
-      <p className="lead">
-        Questo canale ti permette di segnalare illeciti o irregolarità in modo confidenziale. La
-        tua identità è protetta e nessuna ritorsione è ammessa.
-      </p>
+      <h1>{t("landing_h1")}</h1>
+      <p className="lead">{t("landing_lead")}</p>
 
       <div className="notice">
-        <strong>Prima di iniziare</strong>
+        <strong>{t("before_start")}</strong>
         <ul>
-          <li>Non usare un dispositivo o una rete dell'organizzazione, se possibile.</li>
-          <li>Non sei obbligato a fornire il tuo nome né un indirizzo email.</li>
+          <li>{t("bullet_device")}</li>
+          <li>{t("bullet_anon")}</li>
           <li>
-            Al termine riceverai un <strong>codice di 16 cifre</strong>: conservalo, è l'unico modo
-            per rientrare e seguire la tua segnalazione.
+            {t("bullet_receipt_pre")}
+            <strong>{t("bullet_receipt_strong")}</strong>
+            {t("bullet_receipt_post")}
           </li>
         </ul>
       </div>
 
       <div className="btn-row">
         <Link className="btn btn-primary" to="/segnala">
-          Invia una segnalazione
+          {t("cta_submit")}
         </Link>
         <Link className="btn btn-secondary" to="/controlla">
-          Controlla la tua segnalazione
+          {t("cta_check")}
         </Link>
       </div>
 
-      <h2>Come funziona</h2>
-      <p>
-        Le segnalazioni vengono cifrate e rese leggibili solo ai gestori autorizzati. Puoi
-        comunicare con loro in forma anonima tramite un canale di messaggi protetto, allegare
-        documenti e ricevere aggiornamenti sullo stato del caso.
-      </p>
+      <h2>{t("how_title")}</h2>
+      <p>{t("how_text")}</p>
     </>
   );
 }

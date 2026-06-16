@@ -1,8 +1,10 @@
 import QRCode from "qrcode";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useI18n } from "../i18n";
 
 export function Receipt() {
+  const { t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const receipt = (location.state as { receipt?: string } | null)?.receipt;
@@ -33,29 +35,29 @@ export function Receipt() {
 
   return (
     <>
-      <h1>Segnalazione inviata</h1>
+      <h1>{t("sent_title")}</h1>
       <div className="notice warn">
-        <strong>Conserva questo codice.</strong> È l'unico modo per rientrare, leggere le risposte e
-        aggiungere informazioni. Non potrà essere recuperato se lo perdi.
+        <strong>{t("keep_code_strong")}</strong>
+        {t("keep_code")}
       </div>
 
       <div className="card">
-        <div className="receipt-code" aria-label="Codice della segnalazione">
+        <div className="receipt-code" aria-label={t("code_label")}>
           {receipt}
         </div>
         <div className="btn-row">
           <button className="btn btn-secondary" onClick={copy}>
-            {copied ? "Copiato ✓" : "Copia codice"}
+            {copied ? t("copied") : t("copy_code")}
           </button>
         </div>
         <div style={{ marginTop: 16 }}>
-          <canvas ref={canvasRef} aria-label="Codice QR della segnalazione" />
+          <canvas ref={canvasRef} aria-label={t("code_label")} />
         </div>
       </div>
 
       <div className="btn-row">
         <Link className="btn btn-primary" to="/controlla">
-          Vai a "Controlla la tua segnalazione"
+          {t("go_check")}
         </Link>
       </div>
     </>

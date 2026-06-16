@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { Field as FieldModel } from "../api";
-import { t } from "./Layout";
+import { loc, useI18n } from "../i18n";
 
 function VoiceRecorder({ onChange }: { onChange: (v: File[]) => void }) {
+  const { t } = useI18n();
   const [recording, setRecording] = useState(false);
   const [url, setUrl] = useState("");
   const [err, setErr] = useState("");
@@ -26,7 +27,7 @@ function VoiceRecorder({ onChange }: { onChange: (v: File[]) => void }) {
       recRef.current = rec;
       setRecording(true);
     } catch {
-      setErr("Microfono non disponibile o permesso negato.");
+      setErr(t("mic_error"));
     }
   }
 
@@ -40,11 +41,11 @@ function VoiceRecorder({ onChange }: { onChange: (v: File[]) => void }) {
       <div className="btn-row" style={{ marginTop: 0 }}>
         {!recording ? (
           <button type="button" className="btn btn-secondary" onClick={start}>
-            ● Registra messaggio vocale
+            {t("record_voice")}
           </button>
         ) : (
           <button type="button" className="btn btn-danger" onClick={stop}>
-            ■ Ferma registrazione
+            {t("stop_voice")}
           </button>
         )}
       </div>
@@ -65,8 +66,9 @@ export function FieldInput({
   value: FieldValue | undefined;
   onChange: (v: FieldValue) => void;
 }) {
-  const label = t(field.label);
-  const hint = t(field.hint);
+  const { t, lang } = useI18n();
+  const label = loc(field.label, lang);
+  const hint = loc(field.hint, lang);
   const id = `f-${field.id}`;
 
   return (
@@ -116,10 +118,10 @@ export function FieldInput({
             value={(value as string) ?? ""}
             onChange={(e) => onChange(e.target.value)}
           >
-            <option value="">— Seleziona —</option>
+            <option value="">{t("select_placeholder")}</option>
             {field.options.map((o) => (
-              <option key={o.id} value={t(o.label)}>
-                {t(o.label)}
+              <option key={o.id} value={loc(o.label, lang)}>
+                {loc(o.label, lang)}
               </option>
             ))}
           </select>
@@ -128,7 +130,7 @@ export function FieldInput({
         return (
           <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
             {field.options.map((o) => {
-              const val = t(o.label);
+              const val = loc(o.label, lang);
               const arr = (value as string[]) ?? [];
               const checked = arr.includes(val);
               return (
