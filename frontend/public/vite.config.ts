@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
@@ -5,6 +6,15 @@ import { defineConfig } from "vite";
 // Bearer tokens work without cross-site complications.
 export default defineConfig({
   plugins: [react()],
+  // The package's ESM build has a broken internal import; alias to the
+  // self-contained CommonJS build via an absolute path (bypasses "exports").
+  resolve: {
+    alias: {
+      "libsodium-wrappers": fileURLToPath(
+        new URL("./node_modules/libsodium-wrappers/dist/modules/libsodium-wrappers.js", import.meta.url),
+      ),
+    },
+  },
   server: {
     port: 5173,
     proxy: {

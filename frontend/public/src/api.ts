@@ -31,9 +31,28 @@ export interface ReportView {
   progressive: number;
   status_id: string | null;
   created_at: string;
-  answers: Record<string, unknown>;
-  comments: { id: string; author_kind: string; content: string; created_at: string }[];
-  files: { id: string; name: string; content_type: string; size: number; author_kind: string }[];
+  zk?: boolean;
+  // Server-side (legacy) decrypted view:
+  answers?: Record<string, unknown>;
+  comments: {
+    id: string;
+    author_kind: string;
+    content?: string; // legacy
+    content_ct?: string; // zk: ciphertext
+    created_at: string;
+  }[];
+  files: {
+    id: string;
+    name?: string; // legacy
+    name_ct?: string; // zk: ciphertext
+    content_type: string;
+    size: number;
+    author_kind: string;
+  }[];
+  // Zero-knowledge fields (client decrypts):
+  sealed_report_prv?: string;
+  report_pub?: string;
+  answers_ct?: string;
 }
 
 async function req<T>(path: string, opts: RequestInit = {}, token?: string): Promise<T> {
@@ -63,13 +82,18 @@ export const api = {
     req<{ id: string; name: Record<string, string>; description: Record<string, string>; questionnaire: Questionnaire | null }>(
       `/public/contexts/${id}`,
     ),
-  submit: (contextId: string, answers: Record<string, unknown>, identity?: Record<string, string>) =>
+  submit: (
+    contextId: string,
+    answers: Record<string, unknown>,
+    identity?: Record<string, string>,
+    wb_pub?: string,
+  ) =>
     req<{ report_id: string; receipt: string; token: string }>(
       "/report",
-      json({ context_id: contextId, answers, identity: identity ?? null }),
+      json({ context_id: contextId, answers, identity: identity ?? null, wb_pub: wb_pub ?? null }),
     ),
-  receiptAuth: (receipt: string) =>
-    req<{ token: string; report_id: string }>("/auth/receipt", json({ receipt })),
+  receiptAuth: (arg: { receipt?: string; lookup?: string }) =>
+    req<{ token: string; report_id: string }>("/auth/receipt", json(arg)),
   myReport: (token: string) => req<ReportView>("/report/me", {}, token),
   addComment: (token: string, content: string) =>
     req<{ status: string }>("/report/me/comments", json({ content }), token),

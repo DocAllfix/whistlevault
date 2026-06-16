@@ -1,24 +1,49 @@
 import { useState } from "react";
 import { api, ReportView } from "../api";
 import { useI18n } from "../i18n";
+import { decryptToString, initZk, lookupFor, unsealReportPrv, WbKeypair, wbKeypair } from "../zk";
 
 export function Check() {
   const { t } = useI18n();
   const [receipt, setReceipt] = useState("");
   const [token, setToken] = useState<string | null>(null);
+  const [kp, setKp] = useState<WbKeypair | null>(null);
   const [report, setReport] = useState<ReportView | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState("");
+
+  function decryptView(view: ReportView, keypair: WbKeypair): ReportView {
+    if (!view.zk || !view.sealed_report_prv) return view;
+    const prv = unsealReportPrv(view.sealed_report_prv, keypair);
+    return {
+      ...view,
+      comments: view.comments.map((c) => ({
+        ...c,
+        content: c.content_ct ? decryptToString(c.content_ct, prv) : "",
+      })),
+      files: view.files.map((f) => ({
+        ...f,
+        name: f.name_ct ? decryptToString(f.name_ct, prv) : "",
+      })),
+    };
+  }
+
+  async function loadDecrypt(tk: string, keypair: WbKeypair) {
+    setReport(decryptView(await api.myReport(tk), keypair));
+  }
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setBusy(true);
     try {
-      const res = await api.receiptAuth(receipt.trim());
+      await initZk();
+      const keypair = await wbKeypair(receipt.trim());
+      const res = await api.receiptAuth({ lookup: await lookupFor(keypair.pubB64) });
       setToken(res.token);
-      setReport(await api.myReport(res.token));
+      setKp(keypair);
+      await loadDecrypt(res.token, keypair);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("invalid_code"));
     } finally {
@@ -26,18 +51,14 @@ export function Check() {
     }
   }
 
-  async function refresh(tk: string) {
-    setReport(await api.myReport(tk));
-  }
-
   async function sendReply(e: React.FormEvent) {
     e.preventDefault();
-    if (!token || !reply.trim()) return;
+    if (!token || !kp || !reply.trim()) return;
     setBusy(true);
     try {
       await api.addComment(token, reply.trim());
       setReply("");
-      await refresh(token);
+      await loadDecrypt(token, kp);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {
@@ -46,11 +67,11 @@ export function Check() {
   }
 
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!token || !e.target.files?.length) return;
+    if (!token || !kp || !e.target.files?.length) return;
     setBusy(true);
     try {
       for (const f of Array.from(e.target.files)) await api.uploadFile(token, f);
-      await refresh(token);
+      await loadDecrypt(token, kp);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

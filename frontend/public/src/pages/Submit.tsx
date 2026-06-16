@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, Field, PublicContext, Questionnaire } from "../api";
 import { FieldInput, FieldValue } from "../components/Field";
 import { loc, useI18n } from "../i18n";
+import { generateReceipt, initZk, wbKeypair } from "../zk";
 
 type Phase = "loading" | "channel" | "form" | "review" | "submitting" | "error";
 
@@ -115,9 +116,20 @@ export function Submit() {
       const idPayload: Record<string, string> = {};
       if (identity.nome.trim()) idPayload["nome"] = identity.nome.trim();
       if (identity.contatto.trim()) idPayload["contatto"] = identity.contatto.trim();
-      const res = await api.submit(contextId, payload, Object.keys(idPayload).length ? idPayload : undefined);
+
+      // Zero-knowledge: generate the receipt + keypair client-side; the server
+      // only receives the public key and never sees the receipt.
+      await initZk();
+      const receipt = generateReceipt();
+      const kp = await wbKeypair(receipt);
+      const res = await api.submit(
+        contextId,
+        payload,
+        Object.keys(idPayload).length ? idPayload : undefined,
+        kp.pubB64,
+      );
       for (const f of fileUploads) await api.uploadFile(res.token, f);
-      navigate("/ricevuta", { state: { receipt: res.receipt } });
+      navigate("/ricevuta", { state: { receipt } });
     } catch (e) {
       fail(e);
     }
