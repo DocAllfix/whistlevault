@@ -51,14 +51,14 @@ async def create_user(db: AsyncSession, session: Session, body: schemas.UserCrea
         name=body.name,
         mail_address=body.mail_address,
     )
-    passwords.provision_credentials(user, body.password)
+    recovery_key = passwords.provision_credentials(user, body.password)
     db.add(user)
     await db.flush()
     await audit.log(
         db, tenant_id=session.tenant_id, type="user_create", user_id=session.user_id, object_id=user.id
     )
     await db.commit()
-    return serialize_user(user)
+    return {**serialize_user(user), "recovery_key": recovery_key}
 
 
 async def list_users(db: AsyncSession, session: Session) -> list[dict]:
@@ -95,17 +95,19 @@ async def update_user(
 
 async def reset_password(
     db: AsyncSession, session: Session, user_id: uuid.UUID, password: str
-) -> None:
+) -> str:
     user = await db.get(AppUser, user_id)
     if user is None or user.tenant_id != session.tenant_id:
         raise CaseNotFound("User not found")
-    # Re-provisioning generates a fresh keypair: the user loses access to reports
-    # encrypted before the reset (acceptable for an admin-forced reset).
-    passwords.provision_credentials(user, password)
+    # Admin-forced reset generates a fresh keypair (the user loses access to reports
+    # encrypted before the reset). The user can avoid this by self-resetting with their
+    # recovery key. Returns the new recovery key to hand to the user.
+    recovery_key = passwords.provision_credentials(user, password)
     await audit.log(
         db, tenant_id=session.tenant_id, type="password_reset", user_id=session.user_id, object_id=user.id
     )
     await db.commit()
+    return recovery_key
 
 
 async def delete_user(db: AsyncSession, session: Session, user_id: uuid.UUID) -> None:

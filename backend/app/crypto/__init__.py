@@ -150,6 +150,19 @@ def decrypt_private_key(key: bytes, wrapped_b64: str) -> str:
     return _b64e(secretbox_decrypt(key, wrapped_b64))
 
 
+def generate_recovery_key() -> str:
+    """A 32-byte recovery key (b64). Shown to the user once; never stored in clear."""
+    return _b64e(new_symmetric_key())
+
+
+def encrypt_private_key_with_recovery(recovery_key_b64: str, private_key_b64: str) -> str:
+    return encrypt_private_key(_b64d(recovery_key_b64), private_key_b64)
+
+
+def decrypt_private_key_with_recovery(recovery_key_b64: str, wrapped_b64: str) -> str:
+    return decrypt_private_key(_b64d(recovery_key_b64), wrapped_b64)
+
+
 def wrap_report_key_for_recipient(report_private_key_b64: str, recipient_public_key_b64: str) -> str:
     """Seal the report private key to a recipient's public key."""
     return seal(recipient_public_key_b64, _b64d(report_private_key_b64))

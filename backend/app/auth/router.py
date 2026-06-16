@@ -63,6 +63,7 @@ class ForgotRequest(BaseModel):
 class ResetRequest(BaseModel):
     token: str
     new_password: str
+    recovery_key: str | None = None  # se fornita, preserva l'accesso ai report
 
 
 def _set_cookie(response: Response, token: str) -> None:
@@ -214,11 +215,22 @@ async def password_reset(body: ResetRequest, db: AsyncSession = Depends(get_sess
         exp = exp.replace(tzinfo=timezone.utc)
     if exp is None or exp < utcnow():
         raise invalid
-    passwords.provision_credentials(user, body.new_password)
+
+    if body.recovery_key:
+        # Preserve the keypair (and thus access to existing reports).
+        new_recovery = passwords.recover_with_recovery_key(user, body.recovery_key, body.new_password)
+        if new_recovery is None:
+            raise HTTPException(status_code=400, detail="Recovery key non valida")
+        data_preserved = True
+    else:
+        # No recovery key: rotate the keypair (existing reports become inaccessible).
+        new_recovery = passwords.provision_credentials(user, body.new_password)
+        data_preserved = False
+
     user.reset_token_hash = ""
     user.reset_token_expires = None
     await db.commit()
-    return {"status": "ok"}
+    return {"status": "ok", "recovery_key": new_recovery, "data_preserved": data_preserved}
 
 
 @router.post("/logout")
