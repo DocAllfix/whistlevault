@@ -2,14 +2,17 @@
 independently of the scheduler.
 """
 
+from datetime import timedelta, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.sessions import store
 from app.db.base import utcnow
-from app.db.models import Mail, Report, ReportFile
+from app.db.models import Context, Mail, Report, ReportFile
 from app.files import storage
 from app.notifications import mailer
+from app.notifications import service as notifications
 
 MAX_ATTEMPTS = 5
 
@@ -53,6 +56,35 @@ async def run_retention(db: AsyncSession) -> int:
                 storage.delete(f.reference_id)
         await db.delete(report)  # cascades to answers/comments/files/recipient links
         count += 1
+    await db.commit()
+    return count
+
+
+async def run_reminders(db: AsyncSession) -> int:
+    """Notify recipients of reports approaching their retention expiry (once)."""
+    now = utcnow()
+    rows = (
+        await db.execute(
+            select(Report, Context.tip_reminder_days)
+            .join(Context, Context.id == Report.context_id)
+            .where(
+                Report.expiration_date.is_not(None),
+                Report.reminder_date.is_(None),
+                Context.tip_reminder_days > 0,
+            )
+        )
+    ).all()
+    count = 0
+    for report, reminder_days in rows:
+        exp = report.expiration_date
+        if exp.tzinfo is None:  # SQLite returns naive datetimes
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp <= now + timedelta(days=reminder_days):
+            await notifications.notify_recipients(
+                db, tenant_id=report.tenant_id, context_id=report.context_id, event="expiring"
+            )
+            report.reminder_date = now
+            count += 1
     await db.commit()
     return count
 

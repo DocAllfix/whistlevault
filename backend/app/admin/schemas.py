@@ -31,6 +31,7 @@ class ContextCreate(BaseModel):
     description: dict[str, str] = {}
     questionnaire_id: uuid.UUID | None = None
     tip_ttl_days: int = 90
+    tip_reminder_days: int = 0
     score_threshold_medium: int = 0
     score_threshold_high: int = 0
     recipient_ids: list[uuid.UUID] = []
@@ -43,6 +44,7 @@ class ContextUpdate(BaseModel):
     description: dict[str, str] | None = None
     questionnaire_id: uuid.UUID | None = None
     tip_ttl_days: int | None = None
+    tip_reminder_days: int | None = None
     score_threshold_medium: int | None = None
     score_threshold_high: int | None = None
     recipient_ids: list[uuid.UUID] | None = None

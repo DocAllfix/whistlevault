@@ -21,6 +21,10 @@ async def _retention_job() -> None:
     await _with_session(tasks.run_retention)
 
 
+async def _reminders_job() -> None:
+    await _with_session(tasks.run_reminders)
+
+
 def start() -> AsyncIOScheduler:
     global _scheduler
     if _scheduler is not None:
@@ -28,6 +32,7 @@ def start() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler()
     scheduler.add_job(_notifications_job, "interval", minutes=1, id="notifications")
     scheduler.add_job(_retention_job, "interval", hours=6, id="retention")
+    scheduler.add_job(_reminders_job, "interval", hours=24, id="reminders")
     scheduler.add_job(tasks.run_session_sweep, "interval", minutes=5, id="session_sweep")
     scheduler.start()
     _scheduler = scheduler

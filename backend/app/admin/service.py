@@ -144,6 +144,7 @@ async def create_context(db: AsyncSession, session: Session, body: schemas.Conte
         description=body.description,
         questionnaire_id=body.questionnaire_id,
         tip_ttl_days=body.tip_ttl_days,
+        tip_reminder_days=body.tip_reminder_days,
         score_threshold_medium=body.score_threshold_medium,
         score_threshold_high=body.score_threshold_high,
         hidden=body.hidden,
@@ -175,7 +176,7 @@ async def update_context(
     if ctx is None or ctx.tenant_id != session.tenant_id:
         raise CaseNotFound("Context not found")
     for attr in (
-        "name", "description", "questionnaire_id", "tip_ttl_days",
+        "name", "description", "questionnaire_id", "tip_ttl_days", "tip_reminder_days",
         "score_threshold_medium", "score_threshold_high", "hidden", "order",
     ):
         value = getattr(body, attr)

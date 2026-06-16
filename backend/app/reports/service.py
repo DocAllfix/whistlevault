@@ -250,6 +250,12 @@ async def add_whistleblower_comment(db: AsyncSession, session: Session, content:
         )
     )
     report.updated_at = utcnow()
+
+    from app.notifications import service as notifications
+
+    await notifications.notify_recipients(
+        db, tenant_id=report.tenant_id, context_id=report.context_id, event="new_comment"
+    )
     await db.commit()
 
 
