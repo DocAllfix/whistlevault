@@ -9,9 +9,9 @@ import os
 
 from sqlalchemy import select
 
-from app.auth import passwords
+from app.auth import escrow
 from app.db.base import Base, get_engine, get_sessionmaker
-from app.db.models import AppUser
+from app.db.models import AppUser, Tenant
 from app.db.seed import seed
 
 
@@ -25,9 +25,10 @@ async def main() -> None:
         if admin_password:
             admin = await session.scalar(select(AppUser).where(AppUser.username == "admin"))
             if admin and not admin.password_hash:
-                passwords.provision_credentials(admin, admin_password)
+                tenant = await session.get(Tenant, admin.tenant_id)
+                escrow.init_escrow(tenant, admin, admin_password)
                 await session.commit()
-                print("Admin credentials provisioned.")
+                print("Admin credentials provisioned + tenant escrow bootstrapped.")
     print("Database initialized and seeded.")
 
 

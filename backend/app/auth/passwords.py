@@ -17,43 +17,44 @@ def waste_time() -> None:
     crypto.derive_key("invalid-password", _DUMMY_SALT)
 
 
-def provision_credentials(user: AppUser, password: str) -> str:
-    """Set salt, verifier and a fresh keypair. Returns the recovery key (show once).
+def set_password_with_prv(user: AppUser, new_password: str, private_key_b64: str) -> str:
+    """(Re)wrap the GIVEN private key under a new password + a fresh recovery key.
 
-    The private key is wrapped two ways: under the password-derived key (login) and
-    under a random recovery key (account recovery without losing report access).
+    The public/private keypair is preserved → existing report access is kept.
+    Returns the new recovery key.
     """
     salt = crypto.new_salt()
-    key = crypto.derive_key(password, salt)
-    pub, prv = crypto.generate_keypair()
+    key = crypto.derive_key(new_password, salt)
     recovery_key = crypto.generate_recovery_key()
     user.salt = salt
     user.password_hash = crypto.auth_hash(key)
-    user.crypto_pub_key = pub
-    user.crypto_prv_key = crypto.encrypt_private_key(key, prv)
-    user.crypto_rec_key = crypto.encrypt_private_key_with_recovery(recovery_key, prv)
+    user.crypto_prv_key = crypto.encrypt_private_key(key, private_key_b64)
+    user.crypto_rec_key = crypto.encrypt_private_key_with_recovery(recovery_key, private_key_b64)
     user.password_change_needed = False
     return recovery_key
 
 
-def recover_with_recovery_key(user: AppUser, recovery_key: str, new_password: str) -> str | None:
-    """Reset the password WITHOUT losing the keypair (report access preserved).
+def provision_credentials(user: AppUser, password: str, escrow_pub: str | None = None) -> str:
+    """Set salt, verifier and a FRESH keypair. Returns the recovery key (show once).
 
-    Returns a fresh recovery key on success, or None if the recovery key is wrong.
+    If `escrow_pub` is given, the new private key is also sealed to the tenant escrow
+    key, enabling controlled administrative recovery later.
     """
+    pub, prv = crypto.generate_keypair()
+    user.crypto_pub_key = pub
+    recovery_key = set_password_with_prv(user, password, prv)
+    if escrow_pub:
+        user.escrow_recoverable_key = crypto.wrap_report_key_for_recipient(prv, escrow_pub)
+    return recovery_key
+
+
+def recover_with_recovery_key(user: AppUser, recovery_key: str, new_password: str) -> str | None:
+    """Reset the password WITHOUT losing the keypair. Returns a fresh recovery key, or None."""
     try:
         prv = crypto.decrypt_private_key_with_recovery(recovery_key, user.crypto_rec_key)
     except Exception:
         return None
-    salt = crypto.new_salt()
-    key = crypto.derive_key(new_password, salt)
-    user.salt = salt
-    user.password_hash = crypto.auth_hash(key)
-    user.crypto_prv_key = crypto.encrypt_private_key(key, prv)  # same private key, new password
-    new_recovery = crypto.generate_recovery_key()
-    user.crypto_rec_key = crypto.encrypt_private_key_with_recovery(new_recovery, prv)
-    user.password_change_needed = False
-    return new_recovery
+    return set_password_with_prv(user, new_password, prv)
 
 
 def authenticate(user: AppUser, password: str) -> str | None:

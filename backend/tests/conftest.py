@@ -7,10 +7,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from app import crypto
-from app.auth import passwords
+from app.auth import escrow
 from app.core import ratelimit
 from app.db.base import Base, get_session
-from app.db.models import AppUser, Context, Report
+from app.db.models import AppUser, Context, Report, Tenant
 from app.db.seed import seed
 from app.main import app
 
@@ -37,7 +37,8 @@ async def seeded(engine):
     async with maker() as s:
         await seed(s)
         admin = await s.scalar(select(AppUser).where(AppUser.username == "admin"))
-        passwords.provision_credentials(admin, ADMIN_PASSWORD)
+        tenant = await s.get(Tenant, admin.tenant_id)
+        escrow.init_escrow(tenant, admin, ADMIN_PASSWORD)
 
         ctx = await s.scalar(select(Context))
         report_pub, report_prv = crypto.generate_keypair()

@@ -54,6 +54,19 @@ export function Users() {
               <td>{u.two_factor_enabled ? "✓" : "—"}</td>
               <td>
                 <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const p = prompt(`Nuova password per ${u.username} (recupero escrow, preserva i report):`);
+                    if (p)
+                      api
+                        .recoverUser(token!, u.id, p)
+                        .then((r) => alert(`Recupero eseguito. Codice di recupero:\n${r.recovery_key}`))
+                        .catch((e) => setError(e.message));
+                  }}
+                >
+                  Recupera
+                </button>{" "}
+                <button
                   className="btn btn-danger btn-sm"
                   onClick={() => api.deleteUser(token!, u.id).then(load).catch((e) => setError(e.message))}
                 >

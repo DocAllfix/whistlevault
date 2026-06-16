@@ -36,6 +36,12 @@ async def reset_password(user_id: uuid.UUID, body: schemas.PasswordReset, s: Ses
     return {"status": "ok", "recovery_key": recovery_key}
 
 
+@router.post("/users/{user_id}/recover")
+async def recover_user(user_id: uuid.UUID, body: schemas.PasswordReset, s: Session = Depends(_admin), db: AsyncSession = Depends(get_session)):
+    recovery_key = await service.recover_user_account(db, s, user_id, body.password)
+    return {"status": "ok", "recovery_key": recovery_key}
+
+
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: uuid.UUID, s: Session = Depends(_admin), db: AsyncSession = Depends(get_session)):
     await service.delete_user(db, s, user_id)

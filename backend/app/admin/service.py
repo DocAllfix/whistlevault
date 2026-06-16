@@ -9,9 +9,9 @@ from sqlalchemy.orm import selectinload
 from app import audit
 from app.admin import schemas
 from app.admin.serializers import serialize_context, serialize_questionnaire, serialize_user
-from app.auth import passwords
+from app.auth import escrow, passwords
 from app.auth.sessions import Session
-from app.cases.service import CaseError, CaseNotFound
+from app.cases.service import CaseError, CaseForbidden, CaseNotFound
 from app.db.enums import UserRole
 from app.db.models import (
     AppUser,
@@ -51,14 +51,45 @@ async def create_user(db: AsyncSession, session: Session, body: schemas.UserCrea
         name=body.name,
         mail_address=body.mail_address,
     )
-    recovery_key = passwords.provision_credentials(user, body.password)
+    tenant = await db.get(Tenant, session.tenant_id)
+    escrow_pub = tenant.escrow_pub if tenant else ""
+    recovery_key = passwords.provision_credentials(user, body.password, escrow_pub=escrow_pub or None)
     db.add(user)
     await db.flush()
+
+    # A new admin gets escrow access (re-wrap the escrow private key for them).
+    if role == UserRole.admin and escrow_pub and session.private_key:
+        acting = await db.get(AppUser, uuid.UUID(session.user_id))
+        escrow_prv = escrow.unlock_escrow_prv(acting, session.private_key) if acting else None
+        if escrow_prv:
+            escrow.grant_escrow_to_admin(escrow_prv, user)
+
     await audit.log(
         db, tenant_id=session.tenant_id, type="user_create", user_id=session.user_id, object_id=user.id
     )
     await db.commit()
     return {**serialize_user(user), "recovery_key": recovery_key}
+
+
+async def recover_user_account(
+    db: AsyncSession, session: Session, user_id: uuid.UUID, new_password: str
+) -> str:
+    """Admin escrow recovery: reset a user's password preserving their report access."""
+    acting = await db.get(AppUser, uuid.UUID(session.user_id))
+    escrow_prv = escrow.unlock_escrow_prv(acting, session.private_key) if acting else None
+    if escrow_prv is None:
+        raise CaseForbidden("Escrow non disponibile per questo amministratore")
+    target = await db.get(AppUser, user_id)
+    if target is None or target.tenant_id != session.tenant_id:
+        raise CaseNotFound("User not found")
+    new_recovery = escrow.recover_user(escrow_prv, target, new_password)
+    if new_recovery is None:
+        raise CaseError("Recupero escrow non disponibile per questo utente")
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="escrow_recovery", user_id=session.user_id, object_id=target.id
+    )
+    await db.commit()
+    return new_recovery
 
 
 async def list_users(db: AsyncSession, session: Session) -> list[dict]:

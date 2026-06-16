@@ -109,6 +109,8 @@ export const api = {
   users: (t: string) => req<any[]>("/admin/users", {}, t),
   createUser: (t: string, body: Record<string, unknown>) => req<any>("/admin/users", j(body), t),
   deleteUser: (t: string, id: string) => req(`/admin/users/${id}`, { method: "DELETE" }, t),
+  recoverUser: (t: string, id: string, password: string) =>
+    req<{ recovery_key: string }>(`/admin/users/${id}/recover`, j({ password }), t),
 
   // Admin: questionnaires
   questionnaires: (t: string) => req<any[]>("/admin/questionnaires", {}, t),

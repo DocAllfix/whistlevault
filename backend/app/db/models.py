@@ -47,6 +47,8 @@ class Tenant(TimestampMixin, Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     # Branding / localized texts (logo, colors, intro, policy links).
     settings: Mapped[dict] = mapped_column(JSONType, default=dict, nullable=False)
+    # Tenant escrow public key (for controlled administrative recovery).
+    escrow_pub: Mapped[str] = mapped_column(Text, default="", nullable=False)
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +91,11 @@ class AppUser(TimestampMixin, Base):
     crypto_pub_key: Mapped[str] = mapped_column(Text, default="", nullable=False)
     crypto_prv_key: Mapped[str] = mapped_column(Text, default="", nullable=False)
     crypto_rec_key: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # For ADMINS: the tenant escrow private key sealed to this admin's public key.
     crypto_escrow_prv_key: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # For ALL users: this user's private key sealed to the tenant escrow public key
+    # (enables administrative recovery without losing report access).
+    escrow_recoverable_key: Mapped[str] = mapped_column(Text, default="", nullable=False)
 
     # Granular permissions (least privilege).
     can_delete_submission: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

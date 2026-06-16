@@ -64,6 +64,14 @@ resta crittograficamente inaccessibile.
   l'identità resta sigillata e non rilasciabile (fail-closed). Custodi aggiunti dopo l'invio non
   possono rilasciare identità di segnalazioni preesistenti.
 
+## Recovery key & escrow (implementati)
+- **Recovery key** per ogni utente: consente il reset password **preservando la coppia di chiavi**
+  (i report restano accessibili). Mostrata una sola volta alla creazione.
+- **Escrow per-tenant**: la chiave privata dell'escrow è sigillata a ciascun **admin**; la chiave
+  di ogni utente è sigillata all'escrow → un admin può **recuperare** l'account di un utente
+  (anche senza password e recovery key) **senza perdere** l'accesso ai report. Ogni recupero è
+  tracciato nell'audit log.
+
 ## Rafforzamenti futuri (rinviati)
 - **Antivirus allegati** (ClamAV), **Tor/onion**, **PGP email**: rinviati (vedi piano).
 - Rate limiting e sessioni sono **in-memory** (singola istanza); per multi-istanza usare Redis.
