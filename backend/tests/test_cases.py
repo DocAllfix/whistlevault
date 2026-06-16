@@ -121,28 +121,36 @@ async def test_file_download_roundtrip(client, engine):
 
 
 @pytest.mark.asyncio
-async def test_identity_disclosure_workflow(client, engine):
+async def test_identity_disclosure_is_crypto_enforced(client, engine):
     ac, data = client
     answers = await _answers(engine)
 
-    # Custodian must exist before the request is routed to them.
+    # Custodian must exist BEFORE submission so the identity key is wrapped for them.
     await _make_user(engine, "custode", UserRole.custodian, "CustodePass!")
 
-    report_id = (await ac.post("/api/report", json={"answers": answers})).json()["report_id"]
+    identity = {"nome": "Mario Rossi", "contatto": "mario@example.org"}
+    report_id = (
+        await ac.post("/api/report", json={"answers": answers, "identity": identity})
+    ).json()["report_id"]
+
     handler_token = await _login(ac, "admin", data["admin_password"])
+
+    # Before grant: the recipient CANNOT read the identity (crypto-enforced).
+    pre = (await ac.get(f"/api/cases/{report_id}", headers=_auth(handler_token))).json()
+    assert pre["identity_available"] is True
+    assert pre["identity_granted"] is False
+    assert pre["identity"] is None
 
     req = await ac.post(
         f"/api/cases/{report_id}/identity-requests",
         json={"motivation": "necessario per istruttoria"},
         headers=_auth(handler_token),
     )
-    assert req.status_code == 200
     iar_id = req.json()["identity_request_id"]
 
     cust_token = await _login(ac, "custode", "CustodePass!")
     pending = (await ac.get("/api/custodian/identity-requests", headers=_auth(cust_token))).json()
     assert any(p["id"] == iar_id for p in pending)
-
     grant = await ac.post(
         f"/api/custodian/identity-requests/{iar_id}",
         json={"grant": True, "motivation": "approvato"},
@@ -150,9 +158,11 @@ async def test_identity_disclosure_workflow(client, engine):
     )
     assert grant.status_code == 200
 
-    detail = (await ac.get(f"/api/cases/{report_id}", headers=_auth(handler_token))).json()
-    assert detail["identity_disclosed"] is True
-    assert detail["identity_request_status"] == "granted"
+    # After grant: the recipient can now decrypt the identity.
+    post = (await ac.get(f"/api/cases/{report_id}", headers=_auth(handler_token))).json()
+    assert post["identity_granted"] is True
+    assert post["identity"] == identity
+    assert post["identity_request_status"] == "granted"
 
 
 @pytest.mark.asyncio

@@ -173,6 +173,16 @@ async def get_detail(db: AsyncSession, session: Session, report_id: uuid.UUID) -
         link.last_access = now
     report.last_access = now
     report.access_count += 1
+
+    # Identity: cryptographically readable ONLY if this recipient was granted
+    # access (i.e. holds a wrapped identity key). Otherwise it stays sealed.
+    identity = None
+    if link and link.wrapped_identity_prv_key and report.encrypted_identity:
+        id_prv = crypto.unwrap_report_key_with_private(
+            link.wrapped_identity_prv_key, session.private_key
+        )
+        identity = json.loads(crypto.decrypt_content(id_prv, report.encrypted_identity))
+
     await audit.log(
         db, tenant_id=session.tenant_id, type="report_access", user_id=session.user_id, object_id=report.id
     )
@@ -187,7 +197,9 @@ async def get_detail(db: AsyncSession, session: Session, report_id: uuid.UUID) -
         "label": report.label,
         "created_at": report.created_at.isoformat(),
         "expiration_date": report.expiration_date.isoformat() if report.expiration_date else None,
-        "identity_disclosed": report.enable_whistleblower_identity,
+        "identity_available": report.enable_whistleblower_identity,
+        "identity_granted": identity is not None,
+        "identity": identity,
         "identity_request_status": iar.status.value if iar else None,
         "answers": answers,
         "comments": visible,
@@ -363,8 +375,21 @@ async def resolve_identity_request(
     iar.reply_motivation = motivation
     if grant:
         report = await db.get(Report, iar.report_id)
-        if report:
-            report.enable_whistleblower_identity = True
+        if report and report.encrypted_identity:
+            # The custodian unlocks the identity key with their own key, then
+            # re-wraps it for the requesting recipient so (only) they can read it.
+            wrap = (report.identity_custodian_keys or {}).get(str(_uid(session)))
+            if not wrap:
+                raise CaseForbidden(
+                    "Questo custode non può rilasciare l'identità per questa segnalazione"
+                )
+            id_prv = crypto.unwrap_report_key_with_private(wrap, session.private_key)
+            requester_link = await _link(db, report.id, iar.request_user_id)
+            requester = await db.get(AppUser, iar.request_user_id)
+            if requester_link and requester and requester.crypto_pub_key:
+                requester_link.wrapped_identity_prv_key = crypto.wrap_report_key_for_recipient(
+                    id_prv, requester.crypto_pub_key
+                )
     await audit.log(
         db,
         tenant_id=session.tenant_id,

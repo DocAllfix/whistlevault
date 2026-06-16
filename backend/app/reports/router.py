@@ -45,7 +45,11 @@ async def submit_report(
 
     try:
         report, receipt, report_prv = await service.create_report(
-            db, tenant_id=DEFAULT_TENANT_ID, context_id=context_id, answers=body.answers
+            db,
+            tenant_id=DEFAULT_TENANT_ID,
+            context_id=context_id,
+            answers=body.answers,
+            identity=body.identity,
         )
     except service.ValidationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))

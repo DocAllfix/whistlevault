@@ -9,6 +9,9 @@ from pydantic import BaseModel
 class CreateReportRequest(BaseModel):
     context_id: uuid.UUID | None = None
     answers: dict[str, Any] = {}
+    # Optional, voluntary identity. Encrypted to a separate key; never readable
+    # by recipients until a custodian grants access.
+    identity: dict[str, Any] | None = None
 
 
 class CreateReportResponse(BaseModel):

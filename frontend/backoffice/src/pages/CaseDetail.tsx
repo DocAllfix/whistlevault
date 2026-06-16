@@ -73,10 +73,14 @@ export function CaseDetail() {
         <div>
           <label>Identità segnalante</label>
           <div>
-            {detail.identity_disclosed ? (
-              <span className="badge">Divulgata</span>
-            ) : detail.identity_request_status ? (
-              <span className="badge">Richiesta: {detail.identity_request_status}</span>
+            {!detail.identity_available ? (
+              <span className="muted">Non fornita dal segnalante</span>
+            ) : detail.identity_granted ? (
+              <span className="badge">Accesso concesso</span>
+            ) : detail.identity_request_status === "pending" ? (
+              <span className="badge">Richiesta in attesa del custode</span>
+            ) : detail.identity_request_status === "denied" ? (
+              <span className="badge">Richiesta negata</span>
             ) : (
               <button
                 className="btn btn-secondary btn-sm"
@@ -102,6 +106,19 @@ export function CaseDetail() {
           </p>
         ))}
       </div>
+
+      {detail.identity && (
+        <>
+          <h2>Identità del segnalante</h2>
+          <div className="card">
+            {Object.entries(detail.identity).map(([k, v]) => (
+              <p key={k} style={{ margin: "4px 0" }}>
+                <strong>{k}:</strong> {String(v)}
+              </p>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2>Messaggi</h2>
       {detail.comments.map((c) => (

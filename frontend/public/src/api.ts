@@ -60,8 +60,11 @@ export const api = {
     req<{ id: string; name: Record<string, string>; description: Record<string, string>; questionnaire: Questionnaire | null }>(
       `/public/contexts/${id}`,
     ),
-  submit: (contextId: string, answers: Record<string, unknown>) =>
-    req<{ report_id: string; receipt: string; token: string }>("/report", json({ context_id: contextId, answers })),
+  submit: (contextId: string, answers: Record<string, unknown>, identity?: Record<string, string>) =>
+    req<{ report_id: string; receipt: string; token: string }>(
+      "/report",
+      json({ context_id: contextId, answers, identity: identity ?? null }),
+    ),
   receiptAuth: (receipt: string) =>
     req<{ token: string; report_id: string }>("/auth/receipt", json({ receipt })),
   myReport: (token: string) => req<ReportView>("/report/me", {}, token),

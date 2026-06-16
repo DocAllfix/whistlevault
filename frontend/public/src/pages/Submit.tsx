@@ -15,6 +15,7 @@ export function Submit() {
   const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, FieldValue>>({});
+  const [identity, setIdentity] = useState({ nome: "", contatto: "" });
 
   useEffect(() => {
     api
@@ -83,7 +84,14 @@ export function Submit() {
           }
         }
       }
-      const res = await api.submit(contextId, payload);
+      const idPayload: Record<string, string> = {};
+      if (identity.nome.trim()) idPayload["nome"] = identity.nome.trim();
+      if (identity.contatto.trim()) idPayload["contatto"] = identity.contatto.trim();
+      const res = await api.submit(
+        contextId,
+        payload,
+        Object.keys(idPayload).length ? idPayload : undefined,
+      );
       for (const f of fileUploads) {
         await api.uploadFile(res.token, f);
       }
@@ -133,6 +141,28 @@ export function Submit() {
             </div>
           )),
         )}
+
+        <h2>Identità (facoltativa)</h2>
+        <div className="notice">
+          Puoi segnalare in forma <strong>anonima</strong>. Se scegli di fornire la tua identità,
+          sarà <strong>cifrata separatamente</strong> e un gestore potrà vederla solo previa
+          autorizzazione di un custode.
+        </div>
+        <label htmlFor="id-nome">Nome</label>
+        <input
+          id="id-nome"
+          type="text"
+          value={identity.nome}
+          onChange={(e) => setIdentity({ ...identity, nome: e.target.value })}
+        />
+        <label htmlFor="id-contatto">Contatto (email o telefono)</label>
+        <input
+          id="id-contatto"
+          type="text"
+          value={identity.contatto}
+          onChange={(e) => setIdentity({ ...identity, contatto: e.target.value })}
+        />
+
         <div className="btn-row">
           <button className="btn btn-secondary" onClick={() => setPhase("form")}>
             Indietro

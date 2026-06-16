@@ -263,9 +263,16 @@ class Report(Base):
     receipt_salt: Mapped[str] = mapped_column(Text, default="", nullable=False)  # KDF salt for receipt
     access_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # True when the whistleblower chose to provide their identity (it is then
+    # encrypted to a SEPARATE key, not readable by recipients until released).
     enable_whistleblower_identity: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
+    # Cryptographic identity isolation (delayed identity disclosure):
+    identity_pub_key: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    encrypted_identity: Mapped[str] = mapped_column(Text, default="", nullable=False)  # [ENC]
+    # identity private key wrapped per custodian: {custodian_id: sealed_prv}
+    identity_custodian_keys: Mapped[dict] = mapped_column(JSONType, default=dict, nullable=False)
 
     expiration_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     reminder_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -309,6 +316,9 @@ class RecipientReport(Base):
     enable_notifications: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     # report tip private key wrapped with this recipient's public key
     wrapped_tip_prv_key: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # identity private key wrapped for this recipient, set only when a custodian
+    # grants identity access (delayed identity disclosure).
+    wrapped_identity_prv_key: Mapped[str] = mapped_column(Text, default="", nullable=False)
 
 
 class Comment(Base):

@@ -44,7 +44,9 @@ export interface CaseDetail {
   label: string;
   created_at: string;
   expiration_date: string | null;
-  identity_disclosed: boolean;
+  identity_available: boolean;
+  identity_granted: boolean;
+  identity: Record<string, unknown> | null;
   identity_request_status: string | null;
   answers: Record<string, unknown>;
   comments: { id: string; author_kind: string; visibility: string; content: string; created_at: string }[];

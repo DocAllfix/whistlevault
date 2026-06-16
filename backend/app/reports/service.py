@@ -11,7 +11,7 @@ from sqlalchemy.orm import selectinload
 from app import crypto
 from app.auth.sessions import Session
 from app.db.base import utcnow
-from app.db.enums import AuthorKind, CommentVisibility
+from app.db.enums import AuthorKind, CommentVisibility, UserRole
 from app.db.models import (
     AppUser,
     Comment,
@@ -54,7 +54,7 @@ def _validate_answers(questionnaire: Questionnaire, answers: dict) -> None:
 
 
 async def create_report(
-    db: AsyncSession, *, tenant_id: int, context_id: uuid.UUID, answers: dict
+    db: AsyncSession, *, tenant_id: int, context_id: uuid.UUID, answers: dict, identity: dict | None = None
 ) -> tuple[Report, str, str]:
     context = await db.get(Context, context_id)
     if context is None or context.tenant_id != tenant_id:
@@ -101,6 +101,29 @@ async def create_report(
             answers={"ciphertext": enc_answers},
         )
     )
+
+    # Optional identity: encrypted to a SEPARATE key, wrapped only for custodians.
+    # Recipients hold the report key, which cannot open this. Released only on
+    # custodian grant (delayed identity disclosure).
+    if identity:
+        id_pub, id_prv = crypto.generate_keypair()
+        report.identity_pub_key = id_pub
+        report.encrypted_identity = crypto.encrypt_content(id_pub, json.dumps(identity))
+        report.enable_whistleblower_identity = True
+        custodians = (
+            await db.scalars(
+                select(AppUser).where(
+                    AppUser.tenant_id == tenant_id,
+                    AppUser.role == UserRole.custodian,
+                    AppUser.enabled.is_(True),
+                )
+            )
+        ).all()
+        report.identity_custodian_keys = {
+            str(c.id): crypto.wrap_report_key_for_recipient(id_prv, c.crypto_pub_key)
+            for c in custodians
+            if c.crypto_pub_key
+        }
 
     recipient_ids = (
         await db.scalars(

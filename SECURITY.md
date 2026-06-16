@@ -54,9 +54,17 @@ Documento di riferimento per la sicurezza della piattaforma di whistleblowing.
 - [ ] Container non-root (già nel Dockerfile); rete backoffice non esposta pubblicamente.
 - [ ] Monitoraggio/alert e log di sistema (senza PII del segnalante).
 
-## Limitazioni note / rafforzamenti futuri
-- **Isolamento crittografico dell'identità**: oggi l'identità è protetta dal workflow custode +
-  audit; un rafforzamento è cifrarla con una chiave separata sbloccata solo al grant.
+## Isolamento crittografico dell'identità (implementato)
+L'identità (facoltativa) del segnalante è cifrata con una **chiave dedicata, separata** da quella
+del report. I gestori — pur potendo leggere il contenuto — **non possono decifrare l'identità**:
+la chiave privata dell'identità è wrappata solo per i **custodi** e viene rilasciata a uno specifico
+gestore **solo dopo l'autorizzazione del custode** (re-wrap crittografico). Senza grant l'identità
+resta crittograficamente inaccessibile.
+- **Requisito**: deve esistere **almeno un custode** (con chiavi) al momento dell'invio, altrimenti
+  l'identità resta sigillata e non rilasciabile (fail-closed). Custodi aggiunti dopo l'invio non
+  possono rilasciare identità di segnalazioni preesistenti.
+
+## Rafforzamenti futuri (rinviati)
 - **Antivirus allegati** (ClamAV), **Tor/onion**, **PGP email**: rinviati (vedi piano).
 - Rate limiting e sessioni sono **in-memory** (singola istanza); per multi-istanza usare Redis.
 - I documenti in `compliance/` sono template da validare con legale/DPO.
