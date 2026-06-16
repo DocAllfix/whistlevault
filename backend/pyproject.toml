@@ -1,0 +1,47 @@
+[project]
+name = "whistleblower-platform"
+version = "0.1.0"
+description = "Proprietary EU-compliant whistleblowing platform (FastAPI backend)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30",
+    "alembic>=1.14",
+    "pynacl>=1.5",            # libsodium: keypairs, sealed/secret box, argon2id
+    "pyotp>=2.9",             # TOTP 2FA
+    "aiosmtplib>=3.0",        # async SMTP notifications
+    "python-multipart>=0.0.12",  # file uploads
+    "apscheduler>=3.10",      # scheduled jobs (retention, notifications)
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "httpx>=0.27",
+    "ruff>=0.7",
+    "pip-audit>=2.7",
+    "aiosqlite>=0.20",        # in-memory async DB for fast tests
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

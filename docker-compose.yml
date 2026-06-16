@@ -1,0 +1,43 @@
+# Development stack: PostgreSQL + MailHog (SMTP capture) + backend API.
+# Production uses isolated per-client instances behind a TLS reverse proxy.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wb
+      POSTGRES_PASSWORD: wb_dev_password
+      POSTGRES_DB: whistleblower
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wb -d whistleblower"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # SMTP sink for development: catches all outgoing mail, web UI on :8025.
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # web UI
+
+  api:
+    build: ./backend
+    environment:
+      WB_DATABASE_URL: postgresql+asyncpg://wb:wb_dev_password@db:5432/whistleblower
+      WB_SMTP_HOST: mailhog
+      WB_SMTP_PORT: "1025"
+      WB_ENVIRONMENT: development
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+volumes:
+  db_data:
