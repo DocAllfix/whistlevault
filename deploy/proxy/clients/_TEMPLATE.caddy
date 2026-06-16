@@ -1,0 +1,48 @@
+# Per-client routing template. To onboard a client, copy this file to
+# "<client>.caddy" and replace __CLIENT__ and __BASE__ (e.g. with sed):
+#   sed 's/__CLIENT__/acme/g; s/__BASE__/segnalazioni-sicure.it/g' \
+#       _TEMPLATE.caddy > acme.caddy
+# then reload:  docker compose exec proxy caddy reload --config /etc/caddy/Caddyfile
+#
+# The SPA static files are shared (same build for all clients); only /api is
+# routed to the client's isolated backend container "__CLIENT___api".
+
+# Public whistleblower portal
+__CLIENT__.__BASE__ {
+	encode gzip
+	handle /api/* {
+		reverse_proxy __CLIENT___api:8000
+	}
+	handle {
+		root * /srv/public
+		try_files {path} /index.html
+		file_server
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+	}
+}
+
+# Backoffice (handlers). Optionally restrict to VPN/office IPs (see remote_ip).
+__CLIENT__-gestione.__BASE__ {
+	encode gzip
+	# @blocked not remote_ip 10.0.0.0/8 192.168.0.0/16
+	# respond @blocked 403
+	handle /api/* {
+		reverse_proxy __CLIENT___api:8000
+	}
+	handle {
+		root * /srv/backoffice
+		try_files {path} /index.html
+		file_server
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+	}
+}

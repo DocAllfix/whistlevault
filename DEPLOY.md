@@ -1,7 +1,17 @@
 # Guida al Deploy
 
-Modello consigliato: **SaaS con un'istanza e un database isolati per ciascun cliente**, dietro
-un reverse proxy con TLS automatico (Caddy). Il backend non è mai esposto direttamente.
+**Modello scelto (attuale): Opzione A — una VPS dedicata per cliente.** Massimo isolamento,
+audit-friendly, e questi file lo supportano così come sono. Il backend non è mai esposto
+direttamente (tutto passa da Caddy, con TLS automatico).
+
+**Domini**: il dominio-brand lo possediamo **noi** (es. `segnalazioni-sicure.it`, da scegliere).
+Ogni cliente riceve **sottodomini distinti e gratuiti** — `acme.<brand>` (portale) e
+`acme-gestione.<brand>` (backoffice) — che puntano alla sua VPS. **Il cliente non compra né
+configura nulla.** Il portale mostra logo/colori del cliente (white-label via `tenant.settings`).
+
+Per i passi operativi dettagliati (onboarding, backup, update, monitor) vedi
+[deploy/RUNBOOK.md](deploy/RUNBOOK.md). I file in `deploy/proxy/` servono solo per la futura
+**Opzione B** (più clienti su una VPS) e oggi non si usano.
 
 ## Architettura (per cliente)
 ```

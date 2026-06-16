@@ -1,0 +1,16 @@
+# Shared front reverse proxy for the multi-client (Option B) deployment.
+# One VPS hosts isolated per-client stacks (api+db); this Caddy terminates TLS
+# for every client subdomain and routes by hostname to the right stack.
+#
+# DNS (one-time): a wildcard A record  *.<WB_BASE_DOMAIN> -> VPS IP
+# Then each client gets clean, distinct subdomains issued automatically:
+#     acme.<WB_BASE_DOMAIN>            (public portal)
+#     acme-gestione.<WB_BASE_DOMAIN>  (backoffice)
+# Certificates are obtained automatically (HTTP-01) for the named hosts.
+
+{
+	email {$ACME_EMAIL}
+}
+
+# Per-client routing blocks are dropped here at onboarding (one file per client).
+import /etc/caddy/clients/*.caddy
