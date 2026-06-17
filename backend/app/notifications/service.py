@@ -46,6 +46,9 @@ async def enqueue(db: AsyncSession, *, tenant_id: int, address: str, subject: st
 async def notify_recipients(db: AsyncSession, *, tenant_id: int, context_id, event: str) -> None:
     """Queue a generic, content-free email for each recipient of a context."""
     tenant = await db.get(Tenant, tenant_id)
+    # Per-event opt-out: tenant.settings["mail_events"][event] == False disables it.
+    if (tenant.settings or {}).get("mail_events", {}).get(event) is False:
+        return
     subject, body = _resolve_template(tenant, event)
     recipients = (
         await db.scalars(

@@ -10,6 +10,7 @@ export default defineConfig({
   // self-contained CommonJS build via an absolute path (bypasses "exports").
   resolve: {
     alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
       "libsodium-wrappers": fileURLToPath(
         new URL("./node_modules/libsodium-wrappers/dist/modules/libsodium-wrappers.js", import.meta.url),
       ),

@@ -2,6 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../auth";
+import { VaultMark } from "../components/icons";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Notice } from "../components/ui/notice";
 
 export function Login() {
   const { login } = useAuth();
@@ -22,7 +28,7 @@ export function Login() {
     setBusy(true);
     try {
       const res = await api.login(username, password, totp || undefined);
-      login(res.token, res.role);
+      login(res.token, res.role, res.password_change_needed);
       navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Accesso non riuscito");
@@ -60,61 +66,71 @@ export function Login() {
     }
   }
 
-  if (mode === "reset")
-    return (
-      <div className="center">
-        <h1>Reimposta la password</h1>
-        <form className="card" onSubmit={reset}>
-          <label htmlFor="ru">Nome utente</label>
-          <input id="ru" value={username} onChange={(e) => setUsername(e.target.value)} />
-          <div className="btn-row">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={forgot} disabled={busy || !username}>
-              Invia codice via email
-            </button>
-          </div>
-          <label htmlFor="rt">Codice ricevuto</label>
-          <input id="rt" value={token} onChange={(e) => setToken(e.target.value)} />
-          <label htmlFor="rp">Nuova password</label>
-          <input id="rp" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-          {info && <p style={{ color: "var(--color-success)" }}>{info}</p>}
-          {error && <p className="error-text">{error}</p>}
-          <div className="btn-row">
-            <button className="btn btn-primary" type="submit" disabled={busy || !token.trim() || !newPassword}>
-              Reimposta
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setMode("login")}>
-              Torna al login
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-
   return (
-    <div className="center">
-      <h1>Accesso gestori</h1>
-      <form className="card" onSubmit={submit}>
-        <label htmlFor="u">Nome utente</label>
-        <input id="u" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
-        <label htmlFor="p">Password</label>
-        <input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
-        <label htmlFor="t">Codice 2FA (se attivo)</label>
-        <input id="t" inputMode="numeric" value={totp} onChange={(e) => setTotp(e.target.value)} autoComplete="one-time-code" />
-        {info && <p style={{ color: "var(--color-success)" }}>{info}</p>}
-        {error && (
-          <p className="error-text" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="btn-row">
-          <button className="btn btn-primary" type="submit" disabled={busy}>
-            {busy ? "Accesso…" : "Accedi"}
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={() => setMode("reset")}>
-            Password dimenticata?
-          </button>
+    <div className="flex min-h-dvh items-center justify-center bg-background px-5">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex items-center justify-center gap-2">
+          <VaultMark size={28} className="text-wv-accent" />
+          <span className="text-xl font-semibold tracking-tight text-wv-navy">Whistlevault</span>
         </div>
-      </form>
+
+        {mode === "reset" ? (
+          <Card className="p-6">
+            <h1 className="mb-1 text-xl font-semibold text-wv-navy">Reimposta la password</h1>
+            <p className="mb-5 text-sm text-muted-foreground">Inserisci il nome utente per ricevere un codice.</p>
+            <form onSubmit={reset} className="space-y-4">
+              <div>
+                <Label htmlFor="ru">Nome utente</Label>
+                <Input id="ru" value={username} onChange={(e) => setUsername(e.target.value)} />
+              </div>
+              <Button type="button" variant="secondary" className="w-full" onClick={forgot} disabled={busy || !username}>
+                Invia codice via email
+              </Button>
+              <div>
+                <Label htmlFor="rt">Codice ricevuto</Label>
+                <Input id="rt" value={token} onChange={(e) => setToken(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="rp">Nuova password</Label>
+                <Input id="rp" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              </div>
+              {info && <Notice variant="ok">{info}</Notice>}
+              {error && <Notice variant="warn" role="alert">{error}</Notice>}
+              <div className="flex gap-3">
+                <Button type="submit" disabled={busy || !token.trim() || !newPassword}>Reimposta</Button>
+                <Button type="button" variant="secondary" onClick={() => setMode("login")}>Torna al login</Button>
+              </div>
+            </form>
+          </Card>
+        ) : (
+          <Card className="p-6">
+            <h1 className="mb-1 text-xl font-semibold text-wv-navy">Accesso gestori</h1>
+            <p className="mb-5 text-sm text-muted-foreground">Area riservata al personale autorizzato.</p>
+            <form onSubmit={submit} className="space-y-4">
+              <div>
+                <Label htmlFor="u">Nome utente</Label>
+                <Input id="u" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+              </div>
+              <div>
+                <Label htmlFor="p">Password</Label>
+                <Input id="p" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+              </div>
+              <div>
+                <Label htmlFor="t">Codice 2FA (se attivo)</Label>
+                <Input id="t" inputMode="numeric" value={totp} onChange={(e) => setTotp(e.target.value)} autoComplete="one-time-code" />
+              </div>
+              {info && <Notice variant="ok">{info}</Notice>}
+              {error && <Notice variant="warn" role="alert">{error}</Notice>}
+              <Button type="submit" className="w-full" disabled={busy}>
+                {busy ? "Accesso…" : "Accedi"}
+              </Button>
+              <button type="button" className="w-full text-sm font-medium text-wv-accent hover:underline" onClick={() => setMode("reset")}>
+                Password dimenticata?
+              </button>
+            </form>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

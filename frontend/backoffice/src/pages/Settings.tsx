@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Notice } from "../components/ui/notice";
 
 export function Settings() {
   const { token } = useAuth();
@@ -51,62 +56,54 @@ export function Settings() {
   }
 
   return (
-    <>
-      <h1>Impostazioni</h1>
+    <div className="max-w-2xl">
+      <h1 className="mb-6 text-2xl font-semibold text-wv-navy">Impostazioni</h1>
 
-      <h2>Cambia password</h2>
+      <h2 className="mb-3 text-sm font-semibold text-wv-navy">Cambia password</h2>
       <ChangePassword />
 
-      <h2>Autenticazione a due fattori (2FA)</h2>
-      <div className="card">
+      <h2 className="mb-3 mt-8 text-sm font-semibold text-wv-navy">Autenticazione a due fattori (2FA)</h2>
+      <Card className="space-y-4 p-6">
         {!uri && recovery.length === 0 && (
-          <div className="btn-row">
-            <button className="btn btn-primary" onClick={init}>
-              Attiva 2FA
-            </button>
-            <button className="btn btn-secondary" onClick={disable}>
-              Disattiva 2FA
-            </button>
+          <div className="flex gap-3">
+            <Button onClick={init}>Attiva 2FA</Button>
+            <Button variant="secondary" onClick={disable}>Disattiva 2FA</Button>
           </div>
         )}
 
         {uri && (
-          <div>
-            <p className="muted">
-              Inserisci questa chiave nella tua app di autenticazione (es. Google Authenticator),
-              poi digita il codice generato.
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Inserisci questa chiave nella tua app di autenticazione (es. Google Authenticator), poi digita il codice generato.
             </p>
-            <p>
-              <strong>Chiave:</strong> <code>{secret}</code>
+            <p className="text-sm">
+              <strong className="font-semibold">Chiave:</strong>{" "}
+              <code className="rounded bg-wv-surface2 px-1.5 py-0.5 font-mono text-xs">{secret}</code>
             </p>
-            <p className="muted" style={{ wordBreak: "break-all" }}>{uri}</p>
-            <label htmlFor="code">Codice a 6 cifre</label>
-            <input id="code" inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} />
-            <div className="btn-row">
-              <button className="btn btn-primary" disabled={!code.trim()} onClick={confirm}>
-                Conferma e attiva
-              </button>
+            <p className="break-all font-mono text-xs text-muted-foreground">{uri}</p>
+            <div>
+              <Label htmlFor="code">Codice a 6 cifre</Label>
+              <Input id="code" inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} />
             </div>
+            <Button disabled={!code.trim()} onClick={confirm}>Conferma e attiva</Button>
           </div>
         )}
 
         {recovery.length > 0 && (
-          <div className="card" style={{ background: "#fef9e7" }}>
+          <Notice variant="warn">
             <strong>Codici di recupero (mostrati una sola volta):</strong>
-            <ul>
+            <ul className="mt-2 grid grid-cols-2 gap-1 font-mono">
               {recovery.map((c) => (
-                <li key={c}>
-                  <code>{c}</code>
-                </li>
+                <li key={c}>{c}</li>
               ))}
             </ul>
-          </div>
+          </Notice>
         )}
 
-        {msg && <p style={{ color: "var(--color-success)" }}>{msg}</p>}
-        {error && <p className="error-text">{error}</p>}
-      </div>
-    </>
+        {msg && <Notice variant="ok">{msg}</Notice>}
+        {error && <Notice variant="warn" role="alert">{error}</Notice>}
+      </Card>
+    </div>
   );
 }
 
@@ -132,18 +129,20 @@ function ChangePassword() {
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <label htmlFor="cur">Password attuale</label>
-      <input id="cur" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
-      <label htmlFor="nw">Nuova password</label>
-      <input id="nw" type="password" value={next} onChange={(e) => setNext(e.target.value)} />
-      {msg && <p style={{ color: "var(--color-success)" }}>{msg}</p>}
-      {error && <p className="error-text">{error}</p>}
-      <div className="btn-row">
-        <button className="btn btn-primary" type="submit" disabled={!current || !next}>
-          Aggiorna password
-        </button>
-      </div>
-    </form>
+    <Card className="p-6">
+      <form onSubmit={submit} className="space-y-4">
+        <div>
+          <Label htmlFor="cur">Password attuale</Label>
+          <Input id="cur" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor="nw">Nuova password</Label>
+          <Input id="nw" type="password" value={next} onChange={(e) => setNext(e.target.value)} />
+        </div>
+        {msg && <Notice variant="ok">{msg}</Notice>}
+        {error && <Notice variant="warn" role="alert">{error}</Notice>}
+        <Button type="submit" disabled={!current || !next}>Aggiorna password</Button>
+      </form>
+    </Card>
   );
 }

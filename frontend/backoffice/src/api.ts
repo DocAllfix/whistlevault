@@ -120,6 +120,16 @@ export const api = {
   updateQuestionnaire: (t: string, id: string, body: unknown) =>
     req<any>(`/admin/questionnaires/${id}`, j(body, "PUT"), t),
 
+  // Admin: settings / branding (read-merge-write; PUT replaces the whole blob)
+  getSettings: (t: string) => req<Record<string, any>>("/admin/settings", {}, t),
+  updateSettings: (t: string, settings: Record<string, unknown>) =>
+    req<Record<string, any>>("/admin/settings", j({ settings }, "PUT"), t),
+
+  // Admin: contexts (channels)
+  contexts: (t: string) => req<any[]>("/admin/contexts", {}, t),
+  updateContext: (t: string, id: string, body: Record<string, unknown>) =>
+    req<any>(`/admin/contexts/${id}`, j(body, "PATCH"), t),
+
   // Admin: audit log
   auditLog: (t: string) => req<any[]>("/admin/audit-log", {}, t),
 

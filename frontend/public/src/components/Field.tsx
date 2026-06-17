@@ -1,6 +1,11 @@
 import { useRef, useState } from "react";
 import { Field as FieldModel } from "../api";
 import { loc, useI18n } from "../i18n";
+import { Mic, Stop } from "./icons";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label, selectClass } from "./ui/label";
+import { Textarea } from "./ui/textarea";
 
 function VoiceRecorder({ onChange }: { onChange: (v: File[]) => void }) {
   const { t } = useI18n();
@@ -38,19 +43,19 @@ function VoiceRecorder({ onChange }: { onChange: (v: File[]) => void }) {
 
   return (
     <div>
-      <div className="btn-row" style={{ marginTop: 0 }}>
-        {!recording ? (
-          <button type="button" className="btn btn-secondary" onClick={start}>
-            {t("record_voice")}
-          </button>
-        ) : (
-          <button type="button" className="btn btn-danger" onClick={stop}>
-            {t("stop_voice")}
-          </button>
-        )}
-      </div>
-      {url && <audio controls src={url} style={{ marginTop: 8, width: "100%" }} />}
-      {err && <p className="error-text">{err}</p>}
+      {!recording ? (
+        <Button type="button" variant="secondary" onClick={start}>
+          <Mic size={18} />
+          {t("record_voice")}
+        </Button>
+      ) : (
+        <Button type="button" variant="destructive" onClick={stop}>
+          <Stop size={18} />
+          {t("stop_voice")}
+        </Button>
+      )}
+      {url && <audio controls src={url} className="mt-3 w-full" />}
+      {err && <p className="mt-2 text-sm font-semibold text-wv-danger">{err}</p>}
     </div>
   );
 }
@@ -70,54 +75,40 @@ export function FieldInput({
   const label = loc(field.label, lang);
   const hint = loc(field.hint, lang);
   const id = `f-${field.id}`;
+  const describedBy = hint ? `${id}-hint` : undefined;
 
   return (
     <div>
-      <label htmlFor={id}>
+      <Label htmlFor={id}>
         {label}
-        {field.required && <span className="req" aria-hidden="true">*</span>}
-      </label>
-      {hint && <div className="hint" id={`${id}-hint`}>{hint}</div>}
+        {field.required && (
+          <span className="ml-1 text-wv-danger" aria-hidden="true">
+            *
+          </span>
+        )}
+      </Label>
+      {hint && (
+        <div id={`${id}-hint`} className="mb-2 -mt-1 text-sm text-muted-foreground">
+          {hint}
+        </div>
+      )}
       {renderControl()}
     </div>
   );
-
-  function describedBy() {
-    return hint ? `${id}-hint` : undefined;
-  }
 
   function renderControl() {
     switch (field.type) {
       case "textarea":
         return (
-          <textarea
-            id={id}
-            aria-describedby={describedBy()}
-            required={field.required}
-            value={(value as string) ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-          />
+          <Textarea id={id} aria-describedby={describedBy} required={field.required} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} />
         );
       case "date":
         return (
-          <input
-            id={id}
-            type="date"
-            aria-describedby={describedBy()}
-            required={field.required}
-            value={(value as string) ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-          />
+          <Input id={id} type="date" aria-describedby={describedBy} required={field.required} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} />
         );
       case "select":
         return (
-          <select
-            id={id}
-            aria-describedby={describedBy()}
-            required={field.required}
-            value={(value as string) ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-          >
+          <select id={id} className={selectClass} aria-describedby={describedBy} required={field.required} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)}>
             <option value="">{t("select_placeholder")}</option>
             {field.options.map((o) => (
               <option key={o.id} value={loc(o.label, lang)}>
@@ -128,51 +119,41 @@ export function FieldInput({
         );
       case "multiselect":
         return (
-          <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-            {field.options.map((o) => {
-              const val = loc(o.label, lang);
-              const arr = (value as string[]) ?? [];
-              const checked = arr.includes(val);
-              return (
-                <div className="checkbox-row" key={o.id}>
-                  <input
-                    type="checkbox"
-                    id={`${id}-${o.id}`}
-                    checked={checked}
-                    onChange={(e) =>
-                      onChange(e.target.checked ? [...arr, val] : arr.filter((x) => x !== val))
-                    }
-                  />
-                  <label htmlFor={`${id}-${o.id}`} style={{ margin: 0 }}>
+          <fieldset className="m-0 border-0 p-0">
+            <div className="grid gap-2">
+              {field.options.map((o) => {
+                const val = loc(o.label, lang);
+                const arr = (value as string[]) ?? [];
+                const checked = arr.includes(val);
+                return (
+                  <label
+                    key={o.id}
+                    htmlFor={`${id}-${o.id}`}
+                    className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-white px-3 py-2.5 font-medium hover:border-wv-border-strong"
+                  >
+                    <input
+                      type="checkbox"
+                      id={`${id}-${o.id}`}
+                      className="h-5 w-5 accent-wv-accent"
+                      checked={checked}
+                      onChange={(e) => onChange(e.target.checked ? [...arr, val] : arr.filter((x) => x !== val))}
+                    />
                     {val}
                   </label>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </fieldset>
         );
       case "file":
         return (
-          <input
-            id={id}
-            type="file"
-            multiple
-            aria-describedby={describedBy()}
-            onChange={(e) => onChange(Array.from(e.target.files ?? []))}
-          />
+          <Input id={id} type="file" multiple aria-describedby={describedBy} onChange={(e) => onChange(Array.from(e.target.files ?? []))} />
         );
       case "voice":
         return <VoiceRecorder onChange={(files) => onChange(files)} />;
       default:
         return (
-          <input
-            id={id}
-            type="text"
-            aria-describedby={describedBy()}
-            required={field.required}
-            value={(value as string) ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-          />
+          <Input id={id} type="text" aria-describedby={describedBy} required={field.required} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} />
         );
     }
   }

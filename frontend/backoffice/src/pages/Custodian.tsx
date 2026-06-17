@@ -1,6 +1,11 @@
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+import { ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 
 export function Custodian() {
   const { token } = useAuth();
@@ -31,26 +36,39 @@ export function Custodian() {
 
   return (
     <>
-      <h1>Richieste di accesso all'identità</h1>
-      {items.length === 0 && <p className="muted">Nessuna richiesta in attesa.</p>}
-      {items.map((it) => (
-        <div className="card" key={it.id}>
-          <p>
-            <strong>Segnalazione</strong> {it.report_id.slice(0, 8)}… —{" "}
-            {new Date(it.request_date).toLocaleString("it-IT")}
-          </p>
-          <p>{it.motivation || <span className="muted">Nessuna motivazione</span>}</p>
-          <div className="btn-row">
-            <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => resolve(it.id, true)}>
-              Approva
-            </button>
-            <button className="btn btn-danger btn-sm" disabled={busy} onClick={() => resolve(it.id, false)}>
-              Nega
-            </button>
-          </div>
+      <h1 className="mb-6 text-2xl font-semibold text-wv-navy">Richieste di accesso all'identità</h1>
+
+      {items.length === 0 && (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-white py-16 text-center">
+          <ShieldCheck className="mb-3 text-muted-foreground" size={32} />
+          <p className="text-sm text-muted-foreground">Nessuna richiesta in attesa.</p>
         </div>
-      ))}
-      {error && <p className="error-text">{error}</p>}
+      )}
+
+      <div className="space-y-3">
+        {items.map((it2) => (
+          <Card key={it2.id} className="p-5">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="font-medium text-wv-navy">Segnalazione {it2.report_id.slice(0, 8)}…</span>
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(it2.request_date), "d MMM yyyy, HH:mm", { locale: it })}
+              </span>
+            </div>
+            <p className="text-sm text-secondary-foreground/80">
+              {it2.motivation || <span className="text-muted-foreground">Nessuna motivazione fornita</span>}
+            </p>
+            <div className="mt-4 flex gap-3">
+              <Button size="sm" disabled={busy} onClick={() => resolve(it2.id, true)}>
+                Approva
+              </Button>
+              <Button size="sm" variant="destructive" disabled={busy} onClick={() => resolve(it2.id, false)}>
+                Nega
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+      {error && <p className="mt-4 text-sm font-semibold text-wv-danger">{error}</p>}
     </>
   );
 }

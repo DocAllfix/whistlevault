@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 import { useAuth } from "../../auth";
+import { ROLE_LABEL } from "../../components/Nav";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card } from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { Label, selectClass } from "../../components/ui/label";
 
 export function Users() {
   const { token } = useAuth();
@@ -34,88 +40,90 @@ export function Users() {
 
   return (
     <>
-      <h1>Utenti</h1>
-      <table>
-        <thead>
-          <tr>
-            <th>Utente</th>
-            <th>Ruolo</th>
-            <th>Email</th>
-            <th>2FA</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id}>
-              <td>{u.username}</td>
-              <td>{u.role}</td>
-              <td>{u.mail_address || <span className="muted">—</span>}</td>
-              <td>{u.two_factor_enabled ? "✓" : "—"}</td>
-              <td>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    const p = prompt(`Nuova password per ${u.username} (recupero escrow, preserva i report):`);
-                    if (p)
-                      api
-                        .recoverUser(token!, u.id, p)
-                        .then((r) => alert(`Recupero eseguito. Codice di recupero:\n${r.recovery_key}`))
-                        .catch((e) => setError(e.message));
-                  }}
-                >
-                  Recupera
-                </button>{" "}
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => api.deleteUser(token!, u.id).then(load).catch((e) => setError(e.message))}
-                >
-                  Elimina
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h1 className="mb-6 text-2xl font-semibold text-wv-navy">Utenti</h1>
 
-      <h2>Nuovo utente</h2>
-      <form className="card" onSubmit={create}>
-        <div className="row">
+      <div className="mb-8 overflow-hidden rounded-lg border border-border bg-white">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-wv-surface2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <th className="px-4 py-2.5">Utente</th>
+              <th className="px-4 py-2.5">Ruolo</th>
+              <th className="px-4 py-2.5">Email</th>
+              <th className="px-4 py-2.5">2FA</th>
+              <th className="px-4 py-2.5"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className="border-t border-border first:border-t-0">
+                <td className="px-4 py-3">
+                  <span className="font-medium text-wv-navy">{u.name || u.username}</span>{" "}
+                  <span className="text-muted-foreground">({u.username})</span>
+                </td>
+                <td className="px-4 py-3">{ROLE_LABEL[u.role] ?? u.role}</td>
+                <td className="px-4 py-3 text-muted-foreground">{u.mail_address || "—"}</td>
+                <td className="px-4 py-3">
+                  {u.two_factor_enabled ? <Badge variant="success">Attivo</Badge> : <span className="text-muted-foreground">—</span>}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      const p = prompt(`Nuova password per ${u.username} (recupero escrow, preserva i report):`);
+                      if (p)
+                        api
+                          .recoverUser(token!, u.id, p)
+                          .then((r) => alert(`Recupero eseguito. Codice di recupero:\n${r.recovery_key}`))
+                          .catch((e) => setError(e.message));
+                    }}
+                  >
+                    Recupera
+                  </Button>{" "}
+                  <Button size="sm" variant="destructive" onClick={() => api.deleteUser(token!, u.id).then(load).catch((e) => setError(e.message))}>
+                    Elimina
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 className="mb-3 text-sm font-semibold text-wv-navy">Nuovo utente</h2>
+      <Card className="p-6">
+        <form onSubmit={create} className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label>Nome utente</label>
-            <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+            <Label>Nome utente</Label>
+            <Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
           </div>
           <div>
-            <label>Password iniziale</label>
-            <input type="text" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+            <Label>Password iniziale</Label>
+            <Input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
           </div>
           <div>
-            <label>Ruolo</label>
-            <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-              <option value="recipient">recipient</option>
-              <option value="custodian">custodian</option>
-              <option value="analyst">analyst</option>
-              <option value="admin">admin</option>
+            <Label>Nome</Label>
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <Label>Email</Label>
+            <Input value={form.mail_address} onChange={(e) => setForm({ ...form, mail_address: e.target.value })} />
+          </div>
+          <div>
+            <Label>Ruolo</Label>
+            <select className={selectClass} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+              <option value="recipient">Gestore</option>
+              <option value="custodian">Custode</option>
+              <option value="analyst">Analista</option>
+              <option value="admin">Amministratore</option>
             </select>
           </div>
-        </div>
-        <div className="row">
-          <div>
-            <label>Nome</label>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <div className="sm:col-span-2">
+            {error && <p className="mb-3 text-sm font-semibold text-wv-danger">{error}</p>}
+            <Button type="submit" disabled={busy || !form.username || !form.password}>Crea utente</Button>
           </div>
-          <div>
-            <label>Email</label>
-            <input value={form.mail_address} onChange={(e) => setForm({ ...form, mail_address: e.target.value })} />
-          </div>
-        </div>
-        {error && <p className="error-text">{error}</p>}
-        <div className="btn-row">
-          <button className="btn btn-primary" disabled={busy || !form.username || !form.password}>
-            Crea utente
-          </button>
-        </div>
-      </form>
+        </form>
+      </Card>
     </>
   );
 }

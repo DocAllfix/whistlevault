@@ -12,6 +12,9 @@ from app.db.base import get_session
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 _admin = require_roles("admin")
+# Workflow status labels are non-sensitive metadata needed by every handler role
+# (dashboard badges, case detail). Listing is allowed to any authenticated handler.
+_any_handler = require_roles("admin", "recipient", "custodian", "analyst")
 
 
 # Users
@@ -99,7 +102,7 @@ async def delete_questionnaire(qid: uuid.UUID, s: Session = Depends(_admin), db:
 
 # Statuses
 @router.get("/statuses")
-async def list_statuses(s: Session = Depends(_admin), db: AsyncSession = Depends(get_session)):
+async def list_statuses(s: Session = Depends(_any_handler), db: AsyncSession = Depends(get_session)):
     return await service.list_statuses(db, s)
 
 

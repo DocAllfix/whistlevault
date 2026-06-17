@@ -1,7 +1,24 @@
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+import { AlertTriangle, Download, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, CaseDetail as Detail } from "../api";
 import { useAuth } from "../auth";
+import { ROLE_LABEL } from "../components/Nav";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label, selectClass } from "../components/ui/label";
+import { Textarea } from "../components/ui/textarea";
+import { cn } from "../lib/utils";
+
+const VIS_LABEL: Record<string, string> = {
+  public: "Visibile al segnalante",
+  internal: "Solo interna",
+  personal: "Personale",
+};
 
 export function CaseDetail() {
   const { token, role } = useAuth();
@@ -30,17 +47,6 @@ export function CaseDetail() {
     }
   }
 
-  async function exportZip() {
-    const res = await fetch(api.exportUrl(id), { headers: { Authorization: `Bearer ${token}` } });
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `segnalazione-${detail?.progressive ?? "export"}.zip`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   useEffect(() => {
     load().catch((e) => setError(e.message));
   }, [token, id]);
@@ -58,226 +64,195 @@ export function CaseDetail() {
     }
   }
 
-  async function download(fileId: string, name: string) {
-    const res = await fetch(api.fileUrl(id, fileId), { headers: { Authorization: `Bearer ${token}` } });
+  async function blobDownload(url: string, name: string) {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
+    a.href = URL.createObjectURL(blob);
     a.download = name;
     a.click();
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(a.href);
   }
 
-  if (error && !detail) return <p className="error-text">{error}</p>;
-  if (!detail) return <p>Caricamento…</p>;
+  if (error && !detail) return <p className="text-sm font-semibold text-wv-danger">{error}</p>;
+  if (!detail) return <p className="text-muted-foreground">Caricamento…</p>;
 
   return (
-    <>
-      <h1>
-        Segnalazione n. {detail.progressive}{" "}
-        {detail.score ? (
-          <span className="badge">
-            Rischio {detail.score}
-            {detail.important ? " ⚠" : ""}
-          </span>
-        ) : null}
-      </h1>
-
-      <div className="btn-row">
-        <button className="btn btn-secondary btn-sm" onClick={exportZip} disabled={busy}>
-          Esporta caso (ZIP)
-        </button>
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold text-wv-navy">Segnalazione n. {detail.progressive}</h1>
+          {detail.score > 0 && <Badge variant={detail.important ? "danger" : "default"}>Rischio {detail.score}</Badge>}
+          {detail.important && (
+            <Badge variant="warning">
+              <AlertTriangle size={13} /> Importante
+            </Badge>
+          )}
+        </div>
+        <Button data-tour="case-export" variant="secondary" size="sm" disabled={busy} onClick={() => blobDownload(api.exportUrl(id), `segnalazione-${detail.progressive}.zip`)}>
+          <Download size={16} /> Esporta caso (ZIP)
+        </Button>
       </div>
 
-      <div className="row">
+      <div data-tour="case-status" className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="st">Stato</label>
-          <select
-            id="st"
-            value={detail.status_id ?? ""}
-            onChange={(e) => act(() => api.changeStatus(token!, id, e.target.value))}
-          >
+          <Label htmlFor="st">Stato</Label>
+          <select id="st" className={selectClass} value={detail.status_id ?? ""} onChange={(e) => act(() => api.changeStatus(token!, id, e.target.value))}>
             {statuses.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
+              <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </select>
         </div>
         <div>
-          <label>Identità segnalante</label>
-          <div>
+          <Label>Identità segnalante</Label>
+          <div className="flex h-11 items-center">
             {!detail.identity_available ? (
-              <span className="muted">Non fornita dal segnalante</span>
+              <span className="text-sm text-muted-foreground">Non fornita dal segnalante</span>
             ) : detail.identity_granted ? (
-              <span className="badge">Accesso concesso</span>
+              <Badge variant="success">Accesso concesso</Badge>
             ) : detail.identity_request_status === "pending" ? (
-              <span className="badge">Richiesta in attesa del custode</span>
+              <Badge variant="warning">Richiesta in attesa del custode</Badge>
             ) : detail.identity_request_status === "denied" ? (
-              <span className="badge">Richiesta negata</span>
+              <Badge variant="danger">Richiesta negata</Badge>
             ) : (
-              <button
-                className="btn btn-secondary btn-sm"
-                disabled={busy}
-                onClick={() => {
-                  const m = prompt("Motivazione della richiesta di accesso all'identità:");
-                  if (m !== null) act(() => api.requestIdentity(token!, id, m));
-                }}
-              >
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => {
+                const m = prompt("Motivazione della richiesta di accesso all'identità:");
+                if (m !== null) act(() => api.requestIdentity(token!, id, m));
+              }}>
                 Richiedi accesso identità
-              </button>
+              </Button>
             )}
           </div>
         </div>
       </div>
 
-      <h2>Contenuto della segnalazione</h2>
-      <div className="card">
-        {Object.values(detail.answers).length === 0 && <p className="muted">Nessuna risposta.</p>}
-        {Object.values(detail.answers).map((v, i) => (
-          <p key={i} style={{ margin: "4px 0" }}>
-            {Array.isArray(v) ? v.join(", ") : String(v)}
-          </p>
-        ))}
-      </div>
+      <section data-tour="case-content">
+        <h2 className="mb-3 text-sm font-semibold text-wv-navy">Contenuto della segnalazione</h2>
+        <Card className="space-y-2 p-5">
+          {Object.values(detail.answers).length === 0 && <p className="text-sm text-muted-foreground">Nessuna risposta.</p>}
+          {Object.values(detail.answers).map((v, i) => (
+            <p key={i} className="text-sm leading-relaxed text-secondary-foreground/90">
+              {Array.isArray(v) ? v.join(", ") : String(v)}
+            </p>
+          ))}
+        </Card>
+      </section>
 
-      <div className="card">
-        <label htmlFor="mask">Oscura un testo nelle risposte</label>
-        <input
-          id="mask"
-          value={maskText}
-          onChange={(e) => setMaskText(e.target.value)}
-          placeholder="testo da oscurare"
-        />
-        <div className="btn-row">
-          <button
-            className="btn btn-secondary btn-sm"
-            disabled={busy || !maskText.trim()}
-            onClick={() =>
-              act(async () => {
-                await api.createRedaction(token!, id, "answers", [maskText.trim()], false);
-                setMaskText("");
-              })
-            }
-          >
-            Oscura (reversibile)
-          </button>
-          <button
-            className="btn btn-danger btn-sm"
-            disabled={busy || !maskText.trim()}
-            onClick={() => {
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-wv-navy">Oscura un testo nelle risposte</h2>
+        <Card className="p-5">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-60 flex-1">
+              <Input value={maskText} onChange={(e) => setMaskText(e.target.value)} placeholder="testo da oscurare" />
+            </div>
+            <Button size="sm" variant="secondary" disabled={busy || !maskText.trim()} onClick={() => act(async () => { await api.createRedaction(token!, id, "answers", [maskText.trim()], false); setMaskText(""); })}>
+              Oscura (reversibile)
+            </Button>
+            <Button size="sm" variant="destructive" disabled={busy || !maskText.trim()} onClick={() => {
               if (confirm("Oscuramento permanente e irreversibile. Procedere?"))
-                act(async () => {
-                  await api.createRedaction(token!, id, "answers", [maskText.trim()], true);
-                  setMaskText("");
-                });
-            }}
-          >
-            Oscura permanentemente
-          </button>
-        </div>
-      </div>
+                act(async () => { await api.createRedaction(token!, id, "answers", [maskText.trim()], true); setMaskText(""); });
+            }}>
+              Oscura permanentemente
+            </Button>
+          </div>
+        </Card>
+      </section>
 
       {role === "admin" && (
-        <>
-          <h2>Accesso al caso</h2>
-          <div className="row">
-            <div>
-              <label htmlFor="tgt">Gestore</label>
-              <select id="tgt" value={target} onChange={(e) => setTarget(e.target.value)}>
-                <option value="">— Seleziona —</option>
-                {users
-                  .filter((u) => u.role === "recipient" || u.role === "admin")
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.username}
-                    </option>
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-wv-navy">Accesso al caso</h2>
+          <Card className="p-5">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-60 flex-1">
+                <Label htmlFor="tgt">Gestore</Label>
+                <select id="tgt" className={selectClass} value={target} onChange={(e) => setTarget(e.target.value)}>
+                  <option value="">— Seleziona —</option>
+                  {users.filter((u) => u.role === "recipient" || u.role === "admin").map((u) => (
+                    <option key={u.id} value={u.id}>{u.username}</option>
                   ))}
-              </select>
+                </select>
+              </div>
+              <Button size="sm" variant="secondary" disabled={busy || !target} onClick={() => act(() => api.grantAccess(token!, id, target))}>Concedi accesso</Button>
+              <Button size="sm" variant="secondary" disabled={busy || !target} onClick={() => act(() => api.transferAccess(token!, id, target))}>Trasferisci</Button>
+              <Button size="sm" variant="destructive" disabled={busy || !target} onClick={() => act(() => api.revokeAccess(token!, id, target))}>Revoca</Button>
             </div>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={busy || !target}
-              onClick={() => act(() => api.grantAccess(token!, id, target))}
-            >
-              Concedi accesso
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={busy || !target}
-              onClick={() => act(() => api.transferAccess(token!, id, target))}
-            >
-              Trasferisci
-            </button>
-          </div>
-        </>
+          </Card>
+        </section>
       )}
 
       {detail.identity && (
-        <>
-          <h2>Identità del segnalante</h2>
-          <div className="card">
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-wv-navy">Identità del segnalante</h2>
+          <Card className="space-y-1 p-5">
             {Object.entries(detail.identity).map(([k, v]) => (
-              <p key={k} style={{ margin: "4px 0" }}>
-                <strong>{k}:</strong> {String(v)}
+              <p key={k} className="text-sm">
+                <strong className="font-semibold text-wv-navy">{k}:</strong> {String(v)}
               </p>
             ))}
-          </div>
-        </>
+          </Card>
+        </section>
       )}
 
-      <h2>Messaggi</h2>
-      {detail.comments.map((c) => (
-        <div key={c.id} className={`thread-msg ${c.author_kind === "recipient" ? "from-handler" : ""}`}>
-          <span className="vis">{c.visibility}</span>
-          <div className="who">{c.author_kind === "recipient" ? "Gestore" : "Segnalante"}</div>
-          <div>{c.content}</div>
+      <section data-tour="case-messages">
+        <h2 className="mb-3 text-sm font-semibold text-wv-navy">Messaggi</h2>
+        <div className="space-y-3">
+          {detail.comments.map((c) => {
+            const handler = c.author_kind === "recipient";
+            return (
+              <div key={c.id} className={cn("rounded-lg border p-4", handler ? "border-border bg-white" : "border-[#cbe3f0] bg-wv-accent-tint")}>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {handler ? "Gestore" : "Segnalante"}
+                  </span>
+                  <Badge variant="outline">{VIS_LABEL[c.visibility] ?? c.visibility}</Badge>
+                </div>
+                <div className="text-sm leading-relaxed">{c.content}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{format(new Date(c.created_at), "d MMM yyyy, HH:mm", { locale: it })}</div>
+              </div>
+            );
+          })}
+          {detail.comments.length === 0 && <p className="text-sm text-muted-foreground">Nessun messaggio.</p>}
         </div>
-      ))}
-      <div className="row" style={{ marginTop: 12 }}>
-        <div style={{ flex: 3 }}>
-          <label htmlFor="cm">Nuovo messaggio</label>
-          <textarea id="cm" value={comment} onChange={(e) => setComment(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="vis">Visibilità</label>
-          <select id="vis" value={visibility} onChange={(e) => setVisibility(e.target.value)}>
-            <option value="public">Visibile al segnalante</option>
-            <option value="internal">Solo interna</option>
-            <option value="personal">Personale</option>
-          </select>
-        </div>
-      </div>
-      <div className="btn-row">
-        <button
-          className="btn btn-primary"
-          disabled={busy || !comment.trim()}
-          onClick={() =>
-            act(async () => {
-              await api.addComment(token!, id, comment.trim(), visibility);
-              setComment("");
-            })
-          }
-        >
-          Invia messaggio
-        </button>
-      </div>
+        <Card className="mt-4 p-5">
+          <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
+            <div>
+              <Label htmlFor="cm">Nuovo messaggio</Label>
+              <Textarea id="cm" value={comment} onChange={(e) => setComment(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="vis">Visibilità</Label>
+              <select id="vis" className={selectClass} value={visibility} onChange={(e) => setVisibility(e.target.value)}>
+                <option value="public">Visibile al segnalante</option>
+                <option value="internal">Solo interna</option>
+                <option value="personal">Personale</option>
+              </select>
+            </div>
+          </div>
+          <Button className="mt-4" disabled={busy || !comment.trim()} onClick={() => act(async () => { await api.addComment(token!, id, comment.trim(), visibility); setComment(""); })}>
+            Invia messaggio
+          </Button>
+        </Card>
+      </section>
 
-      <h2>Allegati</h2>
-      {detail.files.length === 0 && <p className="muted">Nessun allegato.</p>}
-      <ul>
-        {detail.files.map((f) => (
-          <li key={f.id}>
-            <button className="btn btn-secondary btn-sm" onClick={() => download(f.id, f.name)}>
-              {f.name} ({Math.round(f.size / 1024)} KB)
-            </button>
-          </li>
-        ))}
-      </ul>
+      <section>
+        <h2 className="mb-3 text-sm font-semibold text-wv-navy">Allegati</h2>
+        {detail.files.length === 0 && <p className="text-sm text-muted-foreground">Nessun allegato.</p>}
+        <ul className="grid gap-2">
+          {detail.files.map((f) => (
+            <li key={f.id}>
+              <button onClick={() => blobDownload(api.fileUrl(id, f.id), f.name)} className="flex w-full items-center gap-3 rounded-md border border-border bg-white px-4 py-3 text-left text-sm transition-colors hover:bg-wv-surface2">
+                <FileText size={18} className="shrink-0 text-muted-foreground" />
+                <span className="flex-1">{f.name}</span>
+                <span className="text-muted-foreground">{Math.round(f.size / 1024)} KB</span>
+                <Download size={16} className="text-muted-foreground" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      {error && <p className="error-text">{error}</p>}
-      <p className="muted">Ruolo: {role}</p>
-    </>
+      {error && <p className="text-sm font-semibold text-wv-danger">{error}</p>}
+      <p className="text-xs text-muted-foreground">Ruolo: {ROLE_LABEL[role ?? ""] ?? role}</p>
+    </div>
   );
 }

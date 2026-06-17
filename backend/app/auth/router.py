@@ -287,6 +287,8 @@ async def password_change(
         raise HTTPException(status_code=400, detail="Password attuale errata")
     prv = crypto.decrypt_private_key(key, user.crypto_prv_key)
     passwords.set_password_with_prv(user, body.new_password, prv)
+    user.password_change_needed = False
+    user.password_change_date = utcnow()
     await db.commit()
     return {"status": "ok"}
 
