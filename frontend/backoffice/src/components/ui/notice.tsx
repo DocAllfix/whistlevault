@@ -5,7 +5,7 @@ import { Alert, Check, Info } from "../icons";
 type Variant = "info" | "warn" | "ok";
 
 const styles: Record<Variant, string> = {
-  info: "border-wv-accent/40 bg-wv-accent-tint text-[#0c3a52]",
+  info: "border-wv-accent/40 bg-wv-accent/10 text-[#0c3a52]",
   warn: "border-wv-warning/50 bg-[#FCF4E9] text-[#6b3a06]",
   ok: "border-wv-success/40 bg-[#EAF6EE] text-[#0f5128]",
 };

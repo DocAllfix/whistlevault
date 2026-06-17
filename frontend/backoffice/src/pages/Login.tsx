@@ -71,12 +71,12 @@ export function Login() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2">
           <VaultMark size={28} className="text-wv-accent" />
-          <span className="text-xl font-semibold tracking-tight text-wv-navy">Whistlevault</span>
+          <span className="text-xl font-semibold tracking-tight text-foreground">Whistlevault</span>
         </div>
 
         {mode === "reset" ? (
           <Card className="p-6">
-            <h1 className="mb-1 text-xl font-semibold text-wv-navy">Reimposta la password</h1>
+            <h1 className="mb-1 text-xl font-semibold text-foreground">Reimposta la password</h1>
             <p className="mb-5 text-sm text-muted-foreground">Inserisci il nome utente per ricevere un codice.</p>
             <form onSubmit={reset} className="space-y-4">
               <div>
@@ -104,7 +104,7 @@ export function Login() {
           </Card>
         ) : (
           <Card className="p-6">
-            <h1 className="mb-1 text-xl font-semibold text-wv-navy">Accesso gestori</h1>
+            <h1 className="mb-1 text-xl font-semibold text-foreground">Accesso gestori</h1>
             <p className="mb-5 text-sm text-muted-foreground">Area riservata al personale autorizzato.</p>
             <form onSubmit={submit} className="space-y-4">
               <div>

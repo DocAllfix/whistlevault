@@ -25,7 +25,7 @@ const axis = { fontSize: 12, fill: "#51607A" };
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Card className="p-5">
-      <h2 className="mb-4 text-sm font-semibold text-wv-navy">{title}</h2>
+      <h2 className="mb-4 text-sm font-semibold text-foreground">{title}</h2>
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           {children as React.ReactElement}
@@ -52,12 +52,12 @@ export function Statistics() {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold text-wv-navy">Statistiche</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-foreground">Statistiche</h1>
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:max-w-md">
         <Card className="p-5">
           <div className="text-sm text-muted-foreground">Segnalazioni totali</div>
-          <div className="mt-1 text-3xl font-bold text-wv-navy">{s.total}</div>
+          <div className="mt-1 text-3xl font-bold text-foreground">{s.total}</div>
         </Card>
         <Card className="p-5">
           <div className="text-sm text-muted-foreground">Importanti</div>

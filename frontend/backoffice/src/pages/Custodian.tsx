@@ -36,10 +36,10 @@ export function Custodian() {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold text-wv-navy">Richieste di accesso all'identità</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-foreground">Richieste di accesso all'identità</h1>
 
       {items.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-white py-16 text-center">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card py-16 text-center">
           <ShieldCheck className="mb-3 text-muted-foreground" size={32} />
           <p className="text-sm text-muted-foreground">Nessuna richiesta in attesa.</p>
         </div>
@@ -49,7 +49,7 @@ export function Custodian() {
         {items.map((it2) => (
           <Card key={it2.id} className="p-5">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <span className="font-medium text-wv-navy">Segnalazione {it2.report_id.slice(0, 8)}…</span>
+              <span className="font-medium text-foreground">Segnalazione {it2.report_id.slice(0, 8)}…</span>
               <span className="text-xs text-muted-foreground">
                 {format(new Date(it2.request_date), "d MMM yyyy, HH:mm", { locale: it })}
               </span>

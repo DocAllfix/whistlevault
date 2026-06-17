@@ -40,7 +40,7 @@ export function AuditLog() {
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-wv-navy">Registro attività</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Registro attività</h1>
         <div className="relative w-64 max-w-full">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input className="h-9 pl-9 text-sm" placeholder="Cerca azione, utente…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -55,17 +55,17 @@ export function AuditLog() {
       {error && <p className="text-sm font-semibold text-wv-danger">{error}</p>}
 
       {!loading && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-white py-16 text-center">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card py-16 text-center">
           <History className="mb-3 text-muted-foreground" size={32} />
           <p className="text-sm text-muted-foreground">Nessun evento registrato.</p>
         </div>
       )}
 
       {filtered.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-border bg-white">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-wv-surface2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border bg-muted text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <th className="px-4 py-2.5">Data / ora</th>
                 <th className="px-4 py-2.5">Azione</th>
                 <th className="px-4 py-2.5">Attore</th>
@@ -79,7 +79,7 @@ export function AuditLog() {
                     {format(new Date(r.occurred_at), "d MMM yyyy, HH:mm", { locale: it })}
                   </td>
                   <td className="px-4 py-2.5">
-                    <span className="rounded bg-wv-surface2 px-2 py-0.5 font-mono text-xs font-medium text-wv-navy">{r.type}</span>
+                    <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs font-medium text-foreground">{r.type}</span>
                   </td>
                   <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{r.user_id ? r.user_id.slice(0, 8) : "—"}</td>
                   <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{r.object_id ? r.object_id.slice(0, 8) : "—"}</td>

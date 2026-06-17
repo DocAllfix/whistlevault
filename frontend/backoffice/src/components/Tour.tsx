@@ -1,5 +1,5 @@
 import { driver, type DriveStep } from "driver.js";
-import "driver.js/dist/driver.css";
+import "../lib/driver-theme.css";
 import { useCallback, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -67,11 +67,18 @@ export function Tour() {
     const d = driver({
       animate: !reducedMotion,
       showProgress: steps.length > 1,
-      overlayColor: "rgba(11,18,32,0.6)",
-      nextBtnText: "Avanti",
-      prevBtnText: "Indietro",
-      doneBtnText: "Fine",
+      allowClose: true,
+      smoothScroll: true,
+      disableActiveInteraction: true,
+      stagePadding: 8,
+      stageRadius: 10,
+      popoverClass: "wv-popover",
+      overlayColor: "rgb(15 23 42 / 0.55)",
+      nextBtnText: "Avanti →",
+      prevBtnText: "← Indietro",
+      doneBtnText: "Fatto",
       progressText: "{{current}} di {{total}}",
+      onCloseClick: (_el, _step, opts) => opts.driver.destroy(),
       steps,
     });
     d.drive();

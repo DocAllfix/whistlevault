@@ -10,9 +10,9 @@ const buttonVariants = cva(
       variant: {
         default: "bg-wv-accent text-white shadow-sm hover:bg-wv-accent-strong",
         navy: "bg-wv-navy text-white shadow-sm hover:bg-wv-navy-700",
-        secondary: "border border-wv-border-strong bg-white text-wv-navy hover:bg-wv-surface2",
-        outline: "border border-wv-border-strong bg-transparent hover:bg-wv-surface2 text-wv-navy",
-        ghost: "text-wv-accent hover:bg-wv-accent-tint",
+        secondary: "border border-input bg-card text-foreground hover:bg-muted",
+        outline: "border border-input bg-transparent hover:bg-muted text-foreground",
+        ghost: "text-wv-accent hover:bg-wv-accent/10",
         destructive: "bg-wv-danger text-white hover:bg-wv-danger/90",
         link: "text-wv-accent underline-offset-4 hover:underline",
       },

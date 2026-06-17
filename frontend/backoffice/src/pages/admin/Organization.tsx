@@ -101,13 +101,13 @@ export function Organization() {
 
   return (
     <div className="max-w-3xl space-y-10">
-      <h1 className="text-2xl font-semibold text-wv-navy">Personalizza</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Personalizza</h1>
       {msg && <Notice variant="ok">{msg}</Notice>}
       {error && <Notice variant="warn" role="alert">{error}</Notice>}
 
       {/* Branding */}
       <section data-tour="org-branding">
-        <h2 className="mb-1 text-sm font-semibold text-wv-navy">Branding</h2>
+        <h2 className="mb-1 text-sm font-semibold text-foreground">Branding</h2>
         <p className="mb-3 text-sm text-muted-foreground">Logo, nome e colore mostrati nel portale pubblico.</p>
         <Card className="space-y-4 p-6">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -118,7 +118,7 @@ export function Organization() {
             <div>
               <Label>Colore principale</Label>
               <div className="flex items-center gap-3">
-                <input type="color" aria-label="Colore principale" className="h-11 w-14 cursor-pointer rounded-md border border-wv-border-strong bg-white" value={branding.primary_color || "#0369A1"} onChange={(e) => patch((s) => { s.branding = { ...(s.branding ?? {}), primary_color: e.target.value }; })} />
+                <input type="color" aria-label="Colore principale" className="h-11 w-14 cursor-pointer rounded-md border border-input bg-card" value={branding.primary_color || "#0369A1"} onChange={(e) => patch((s) => { s.branding = { ...(s.branding ?? {}), primary_color: e.target.value }; })} />
                 <Input value={branding.primary_color ?? ""} onChange={(e) => patch((s) => { s.branding = { ...(s.branding ?? {}), primary_color: e.target.value }; })} placeholder="#0369A1" />
               </div>
             </div>
@@ -133,12 +133,12 @@ export function Organization() {
 
       {/* Canali */}
       <section data-tour="org-canali">
-        <h2 className="mb-1 text-sm font-semibold text-wv-navy">Canali</h2>
+        <h2 className="mb-1 text-sm font-semibold text-foreground">Canali</h2>
         <p className="mb-3 text-sm text-muted-foreground">Tempi di conservazione, promemoria (SLA) e soglie di rischio per canale.</p>
         <div className="space-y-4">
           {contexts.map((c) => (
             <Card key={c.id} className="space-y-4 p-6">
-              <div className="font-medium text-wv-navy">{c.name?.it ?? c.name?.en ?? "Canale"}</div>
+              <div className="font-medium text-foreground">{c.name?.it ?? c.name?.en ?? "Canale"}</div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <Label>Conservazione (giorni)</Label>
@@ -166,7 +166,7 @@ export function Organization() {
 
       {/* Notifiche */}
       <section data-tour="org-notifiche">
-        <h2 className="mb-1 text-sm font-semibold text-wv-navy">Notifiche email</h2>
+        <h2 className="mb-1 text-sm font-semibold text-foreground">Notifiche email</h2>
         <p className="mb-3 text-sm text-muted-foreground">
           Avvisi ai gestori, sempre senza contenuto della segnalazione. Puoi disattivarli o personalizzarne il testo.
         </p>
@@ -183,7 +183,7 @@ export function Organization() {
                     checked={enabled}
                     onChange={(e) => patch((s) => { s.mail_events = { ...(s.mail_events ?? {}), [ev.key]: e.target.checked }; })}
                   />
-                  <span className="font-medium text-wv-navy">{ev.label}</span>
+                  <span className="font-medium text-foreground">{ev.label}</span>
                 </label>
                 <div className={enabled ? "space-y-3" : "space-y-3 opacity-50"}>
                   <div>

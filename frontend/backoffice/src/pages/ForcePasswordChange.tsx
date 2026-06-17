@@ -39,10 +39,10 @@ export function ForcePasswordChange() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2">
           <VaultMark size={28} className="text-wv-accent" />
-          <span className="text-xl font-semibold tracking-tight text-wv-navy">Whistlevault</span>
+          <span className="text-xl font-semibold tracking-tight text-foreground">Whistlevault</span>
         </div>
         <Card className="p-6">
-          <h1 className="mb-1 text-xl font-semibold text-wv-navy">Imposta una nuova password</h1>
+          <h1 className="mb-1 text-xl font-semibold text-foreground">Imposta una nuova password</h1>
           <p className="mb-5 text-sm text-muted-foreground">
             Per sicurezza, al primo accesso devi sostituire la password temporanea.
           </p>

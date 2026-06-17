@@ -40,12 +40,12 @@ export function Users() {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold text-wv-navy">Utenti</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-foreground">Utenti</h1>
 
-      <div className="mb-8 overflow-hidden rounded-lg border border-border bg-white">
+      <div className="mb-8 overflow-hidden rounded-lg border border-border bg-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-wv-surface2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <tr className="border-b border-border bg-muted text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <th className="px-4 py-2.5">Utente</th>
               <th className="px-4 py-2.5">Ruolo</th>
               <th className="px-4 py-2.5">Email</th>
@@ -57,7 +57,7 @@ export function Users() {
             {users.map((u) => (
               <tr key={u.id} className="border-t border-border first:border-t-0">
                 <td className="px-4 py-3">
-                  <span className="font-medium text-wv-navy">{u.name || u.username}</span>{" "}
+                  <span className="font-medium text-foreground">{u.name || u.username}</span>{" "}
                   <span className="text-muted-foreground">({u.username})</span>
                 </td>
                 <td className="px-4 py-3">{ROLE_LABEL[u.role] ?? u.role}</td>
@@ -90,7 +90,7 @@ export function Users() {
         </table>
       </div>
 
-      <h2 className="mb-3 text-sm font-semibold text-wv-navy">Nuovo utente</h2>
+      <h2 className="mb-3 text-sm font-semibold text-foreground">Nuovo utente</h2>
       <Card className="p-6">
         <form onSubmit={create} className="grid gap-4 sm:grid-cols-2">
           <div>

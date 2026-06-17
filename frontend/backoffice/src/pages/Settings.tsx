@@ -57,12 +57,12 @@ export function Settings() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="mb-6 text-2xl font-semibold text-wv-navy">Impostazioni</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-foreground">Impostazioni</h1>
 
-      <h2 className="mb-3 text-sm font-semibold text-wv-navy">Cambia password</h2>
+      <h2 className="mb-3 text-sm font-semibold text-foreground">Cambia password</h2>
       <ChangePassword />
 
-      <h2 className="mb-3 mt-8 text-sm font-semibold text-wv-navy">Autenticazione a due fattori (2FA)</h2>
+      <h2 className="mb-3 mt-8 text-sm font-semibold text-foreground">Autenticazione a due fattori (2FA)</h2>
       <Card className="space-y-4 p-6">
         {!uri && recovery.length === 0 && (
           <div className="flex gap-3">
@@ -78,7 +78,7 @@ export function Settings() {
             </p>
             <p className="text-sm">
               <strong className="font-semibold">Chiave:</strong>{" "}
-              <code className="rounded bg-wv-surface2 px-1.5 py-0.5 font-mono text-xs">{secret}</code>
+              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{secret}</code>
             </p>
             <p className="break-all font-mono text-xs text-muted-foreground">{uri}</p>
             <div>

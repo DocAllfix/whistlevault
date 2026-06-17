@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label, selectClass } from "../../components/ui/label";
+import { LabelWithHelp } from "../../components/ui/label-help";
 
 type OptDraft = { label_it: string; label_en: string; score: number };
 type FieldDraft = {
@@ -120,16 +121,16 @@ export function Questionnaires() {
     return (
       <>
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-wv-navy">Questionari</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Questionari</h1>
           <Button data-tour="qx-new" onClick={() => { setSelected("new"); setDraft(emptyDraft()); }}>
             <Plus size={18} /> Nuovo questionario
           </Button>
         </div>
-        <div className="overflow-hidden rounded-lg border border-border bg-white">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           {list.map((q, i) => (
             <div key={q.id} className={"flex items-center gap-4 px-4 py-3.5 " + (i > 0 ? "border-t border-border" : "")}>
               <div className="flex-1">
-                <div className="font-medium text-wv-navy">{q.name}</div>
+                <div className="font-medium text-foreground">{q.name}</div>
                 <div className="text-xs text-muted-foreground">{q.steps.length} passi</div>
               </div>
               <Button size="sm" variant="secondary" onClick={() => edit(q)}>Modifica</Button>
@@ -143,7 +144,7 @@ export function Questionnaires() {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold text-wv-navy">
+      <h1 className="mb-6 text-2xl font-semibold text-foreground">
         {selected === "new" ? "Nuovo questionario" : "Modifica questionario"}
       </h1>
       <div className="mb-4 max-w-md">
@@ -170,7 +171,7 @@ export function Questionnaires() {
           </div>
 
           {step.fields.map((f, fi) => (
-            <div key={fi} className="rounded-md border border-border bg-wv-surface2/50 p-4">
+            <div key={fi} className="rounded-md border border-border bg-muted/50 p-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <Label>Domanda (IT)</Label>
@@ -189,21 +190,21 @@ export function Questionnaires() {
                   </select>
                 </div>
                 <label className="flex flex-col">
-                  <span className="mb-2 block text-sm font-semibold text-wv-navy">Obbligatoria</span>
+                  <span className="mb-2 block text-sm font-semibold text-foreground">Obbligatoria</span>
                   <input type="checkbox" className="h-5 w-5 accent-wv-accent" checked={f.required} onChange={(e) => update((d) => { d.steps[si].fields[fi].required = e.target.checked; })} />
                 </label>
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
                 <div>
-                  <Label>Chiave (logica condizionale)</Label>
+                  <LabelWithHelp help="Identificatore stabile del campo (es. 'categoria'). Serve a far comparire altri campi in base alla risposta a questo.">Chiave (logica condizionale)</LabelWithHelp>
                   <Input value={f.key} placeholder="es. categoria" onChange={(e) => update((d) => { d.steps[si].fields[fi].key = e.target.value; })} />
                 </div>
                 <div>
-                  <Label>Mostra se campo (chiave)</Label>
+                  <LabelWithHelp help="Mostra questo campo solo quando il campo con questa chiave ha un certo valore. Lascia vuoto per mostrarlo sempre.">Mostra se campo (chiave)</LabelWithHelp>
                   <Input value={f.trigger_field_key} placeholder="chiave trigger" onChange={(e) => update((d) => { d.steps[si].fields[fi].trigger_field_key = e.target.value; })} />
                 </div>
                 <div>
-                  <Label>…uguale a</Label>
+                  <LabelWithHelp help="Valore che il campo trigger deve avere perché questo campo compaia.">…uguale a</LabelWithHelp>
                   <Input value={f.trigger_value} placeholder="valore atteso" onChange={(e) => update((d) => { d.steps[si].fields[fi].trigger_value = e.target.value; })} />
                 </div>
               </div>

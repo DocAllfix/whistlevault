@@ -81,7 +81,7 @@ export function CaseDetail() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-wv-navy">Segnalazione n. {detail.progressive}</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Segnalazione n. {detail.progressive}</h1>
           {detail.score > 0 && <Badge variant={detail.important ? "danger" : "default"}>Rischio {detail.score}</Badge>}
           {detail.important && (
             <Badge variant="warning">
@@ -127,7 +127,7 @@ export function CaseDetail() {
       </div>
 
       <section data-tour="case-content">
-        <h2 className="mb-3 text-sm font-semibold text-wv-navy">Contenuto della segnalazione</h2>
+        <h2 className="mb-3 text-sm font-semibold text-foreground">Contenuto della segnalazione</h2>
         <Card className="space-y-2 p-5">
           {Object.values(detail.answers).length === 0 && <p className="text-sm text-muted-foreground">Nessuna risposta.</p>}
           {Object.values(detail.answers).map((v, i) => (
@@ -139,7 +139,7 @@ export function CaseDetail() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-wv-navy">Oscura un testo nelle risposte</h2>
+        <h2 className="mb-3 text-sm font-semibold text-foreground">Oscura un testo nelle risposte</h2>
         <Card className="p-5">
           <div className="flex flex-wrap items-end gap-3">
             <div className="min-w-60 flex-1">
@@ -160,7 +160,7 @@ export function CaseDetail() {
 
       {role === "admin" && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-wv-navy">Accesso al caso</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Accesso al caso</h2>
           <Card className="p-5">
             <div className="flex flex-wrap items-end gap-3">
               <div className="min-w-60 flex-1">
@@ -182,11 +182,11 @@ export function CaseDetail() {
 
       {detail.identity && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-wv-navy">Identità del segnalante</h2>
+          <h2 className="mb-3 text-sm font-semibold text-foreground">Identità del segnalante</h2>
           <Card className="space-y-1 p-5">
             {Object.entries(detail.identity).map(([k, v]) => (
               <p key={k} className="text-sm">
-                <strong className="font-semibold text-wv-navy">{k}:</strong> {String(v)}
+                <strong className="font-semibold text-foreground">{k}:</strong> {String(v)}
               </p>
             ))}
           </Card>
@@ -194,12 +194,12 @@ export function CaseDetail() {
       )}
 
       <section data-tour="case-messages">
-        <h2 className="mb-3 text-sm font-semibold text-wv-navy">Messaggi</h2>
+        <h2 className="mb-3 text-sm font-semibold text-foreground">Messaggi</h2>
         <div className="space-y-3">
           {detail.comments.map((c) => {
             const handler = c.author_kind === "recipient";
             return (
-              <div key={c.id} className={cn("rounded-lg border p-4", handler ? "border-border bg-white" : "border-[#cbe3f0] bg-wv-accent-tint")}>
+              <div key={c.id} className={cn("rounded-lg border p-4", handler ? "border-border bg-card" : "border-[#cbe3f0] bg-wv-accent/10")}>
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {handler ? "Gestore" : "Segnalante"}
@@ -235,12 +235,12 @@ export function CaseDetail() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-wv-navy">Allegati</h2>
+        <h2 className="mb-3 text-sm font-semibold text-foreground">Allegati</h2>
         {detail.files.length === 0 && <p className="text-sm text-muted-foreground">Nessun allegato.</p>}
         <ul className="grid gap-2">
           {detail.files.map((f) => (
             <li key={f.id}>
-              <button onClick={() => blobDownload(api.fileUrl(id, f.id), f.name)} className="flex w-full items-center gap-3 rounded-md border border-border bg-white px-4 py-3 text-left text-sm transition-colors hover:bg-wv-surface2">
+              <button onClick={() => blobDownload(api.fileUrl(id, f.id), f.name)} className="flex w-full items-center gap-3 rounded-md border border-border bg-card px-4 py-3 text-left text-sm transition-colors hover:bg-muted">
                 <FileText size={18} className="shrink-0 text-muted-foreground" />
                 <span className="flex-1">{f.name}</span>
                 <span className="text-muted-foreground">{Math.round(f.size / 1024)} KB</span>

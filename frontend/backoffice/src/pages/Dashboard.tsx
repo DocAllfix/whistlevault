@@ -89,7 +89,7 @@ export function Dashboard() {
   return (
     <>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-wv-navy">Segnalazioni</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Segnalazioni</h1>
       </div>
 
       <div data-tour="dash-tools" className="mb-6 flex flex-wrap items-center gap-3">
@@ -119,9 +119,9 @@ export function Dashboard() {
       {error && <p className="text-sm font-semibold text-wv-danger">{error}</p>}
 
       {!loading && visible.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-white py-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card py-20 text-center">
           <Inbox className="mb-3 text-muted-foreground" size={36} />
-          <p className="font-medium text-wv-navy">Nessuna segnalazione</p>
+          <p className="font-medium text-foreground">Nessuna segnalazione</p>
           <p className="text-sm text-muted-foreground">Modifica i filtri o attendi nuove segnalazioni.</p>
         </div>
       )}
@@ -133,7 +133,7 @@ export function Dashboard() {
           return (
             <section key={g}>
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g}</h2>
-              <div className="overflow-hidden rounded-lg border border-border bg-white">
+              <div className="overflow-hidden rounded-lg border border-border bg-card">
                 {rows.map((c, i) => {
                   const overdue =
                     c.expiration_date && differenceInCalendarDays(new Date(c.expiration_date), new Date()) < 0;
@@ -142,14 +142,14 @@ export function Dashboard() {
                       key={c.report_id}
                       onClick={() => navigate(`/cases/${c.report_id}`)}
                       className={
-                        "flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-wv-surface2 " +
+                        "flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-muted " +
                         (i > 0 ? "border-t border-border" : "")
                       }
                     >
                       <Flag size={18} className="shrink-0 text-muted-foreground" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="truncate font-medium text-wv-navy">
+                          <span className="truncate font-medium text-foreground">
                             {c.label || `Segnalazione n. ${c.progressive}`}
                           </span>
                           {c.new && <Badge variant="success">Novità</Badge>}

@@ -137,9 +137,11 @@ export const PenLine = (p: P) => (
 /** Whistlevault brand mark: shield + vault/gem facets (original, owned). */
 export const VaultMark = (p: P) => (
   <Svg {...p}>
-    <path d="M12 2.5 20 5.5V11c0 5-3.4 8.2-8 9.5C7.4 19.2 4 16 4 11V5.5L12 2.5Z" />
-    <path d="M8 8h8" />
-    <path d="M12 8v11.4" />
-    <path d="M8 8l4 5 4-5" />
+    <path d="M12 2.3 20 5.4V11c0 5-3.4 8.3-8 9.6C7.4 19.3 4 16 4 11V5.4Z" />
+    <path d="M6.7 8.7 9 4.7 12 8.7 15 4.7 17.3 8.7" />
+    <path d="M6.7 8.7 12 20" />
+    <path d="M17.3 8.7 12 20" />
+    <path d="M12 8.7V20" />
+    <path d="M9.2 14.2H14.8" />
   </Svg>
 );
