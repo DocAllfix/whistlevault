@@ -84,11 +84,13 @@ export function Tour() {
     d.drive();
   }, [pathname]);
 
-  // Auto-start once, on the first authenticated page after login.
+  // Auto-start once per browser session: resets each new session so a first-time
+  // visitor (e.g. a demo reviewer) always sees the tour on entry, without nagging
+  // on every page within the same session. Re-runnable anytime via the "?" button.
   useEffect(() => {
-    if (localStorage.getItem(DONE_KEY)) return;
+    if (sessionStorage.getItem(DONE_KEY)) return;
     const t = setTimeout(() => {
-      localStorage.setItem(DONE_KEY, "1");
+      sessionStorage.setItem(DONE_KEY, "1");
       run();
     }, 600);
     return () => clearTimeout(t);
