@@ -54,7 +54,7 @@ async def public_config(db: AsyncSession = Depends(get_session)) -> dict:
         )
     ).all()
     return {
-        "branding": tenant.settings if tenant else {},
+        "branding": (tenant.settings.get("branding", {}) if tenant else {}),
         "contexts": [
             {
                 "id": str(c.id),

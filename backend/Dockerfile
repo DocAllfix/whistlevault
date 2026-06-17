@@ -11,6 +11,9 @@ RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
 
 COPY . .
 
+# Writable, persistable directory for encrypted attachments (mounted as a volume).
+RUN mkdir -p /data && chown appuser:appuser /data
+
 USER appuser
 
 EXPOSE 8000
