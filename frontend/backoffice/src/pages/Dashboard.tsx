@@ -8,6 +8,7 @@ import { useAuth } from "../auth";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import { selectClass } from "../components/ui/label";
+import { cn } from "../lib/utils";
 
 const GROUPS = ["Oggi", "Ultimi 7 giorni", "Ultimo mese", "Archivio"] as const;
 type Group = (typeof GROUPS)[number];
@@ -97,19 +98,19 @@ export function Dashboard() {
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input className="h-9 pl-9 text-sm" placeholder="Cerca per testo o numero…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select aria-label="Filtra per stato" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={selectClass + " h-9 w-auto text-sm"}>
+        <select aria-label="Filtra per stato" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className={cn(selectClass, "h-9 w-auto text-sm")}>
           <option value="">Tutti gli stati</option>
           {statuses.map((s) => (
             <option key={s.id} value={s.id}>{s.label}</option>
           ))}
         </select>
-        <select aria-label="Filtra per canale" value={contextFilter} onChange={(e) => setContextFilter(e.target.value)} className={selectClass + " h-9 w-auto text-sm"}>
+        <select aria-label="Filtra per canale" value={contextFilter} onChange={(e) => setContextFilter(e.target.value)} className={cn(selectClass, "h-9 w-auto text-sm")}>
           <option value="">Tutti i canali</option>
           {contextOptions.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
-        <select aria-label="Ordina" value={sort} onChange={(e) => setSort(e.target.value as "recent" | "expiry")} className={selectClass + " h-9 w-auto text-sm"}>
+        <select aria-label="Ordina" value={sort} onChange={(e) => setSort(e.target.value as "recent" | "expiry")} className={cn(selectClass, "h-9 w-auto text-sm")}>
           <option value="recent">Più recenti</option>
           <option value="expiry">Scadenza vicina</option>
         </select>

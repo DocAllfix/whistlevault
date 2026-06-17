@@ -62,27 +62,27 @@ export function AuditLog() {
       )}
 
       {filtered.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-2.5">Data / ora</th>
-                <th className="px-4 py-2.5">Azione</th>
-                <th className="px-4 py-2.5">Attore</th>
-                <th className="px-4 py-2.5">Oggetto</th>
+              <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <th className="px-5 py-3 font-semibold">Data / ora</th>
+                <th className="px-5 py-3 font-semibold">Azione</th>
+                <th className="px-5 py-3 font-semibold">Attore</th>
+                <th className="px-5 py-3 font-semibold">Oggetto</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((r) => (
-                <tr key={r.id} className="border-t border-border first:border-t-0">
-                  <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
+                <tr key={r.id} className="border-t border-border align-middle transition-colors hover:bg-muted">
+                  <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">
                     {format(new Date(r.occurred_at), "d MMM yyyy, HH:mm", { locale: it })}
                   </td>
-                  <td className="px-4 py-2.5">
-                    <span className="rounded bg-muted px-2 py-0.5 font-mono text-xs font-medium text-foreground">{r.type}</span>
+                  <td className="px-5 py-3">
+                    <span className="inline-flex rounded-md bg-wv-accent/10 px-2 py-0.5 font-mono text-xs font-semibold text-wv-accent">{r.type}</span>
                   </td>
-                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{r.user_id ? r.user_id.slice(0, 8) : "—"}</td>
-                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{r.object_id ? r.object_id.slice(0, 8) : "—"}</td>
+                  <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-muted-foreground">{r.user_id ? r.user_id.slice(0, 8) : "—"}</td>
+                  <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-muted-foreground">{r.object_id ? r.object_id.slice(0, 8) : "—"}</td>
                 </tr>
               ))}
             </tbody>

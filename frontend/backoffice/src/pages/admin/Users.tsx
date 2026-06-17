@@ -42,50 +42,66 @@ export function Users() {
     <>
       <h1 className="mb-6 text-2xl font-semibold text-foreground">Utenti</h1>
 
-      <div className="mb-8 overflow-hidden rounded-lg border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="mb-8 overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+        <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <th className="px-4 py-2.5">Utente</th>
-              <th className="px-4 py-2.5">Ruolo</th>
-              <th className="px-4 py-2.5">Email</th>
-              <th className="px-4 py-2.5">2FA</th>
-              <th className="px-4 py-2.5"></th>
+            <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <th className="px-5 py-3 font-semibold">Utente</th>
+              <th className="px-5 py-3 font-semibold">Ruolo</th>
+              <th className="px-5 py-3 font-semibold">Email</th>
+              <th className="px-5 py-3 font-semibold">2FA</th>
+              <th className="px-5 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="border-t border-border first:border-t-0">
-                <td className="px-4 py-3">
-                  <span className="font-medium text-foreground">{u.name || u.username}</span>{" "}
-                  <span className="text-muted-foreground">({u.username})</span>
+              <tr key={u.id} className="border-t border-border align-middle transition-colors hover:bg-muted">
+                <td className="px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-wv-accent/10 text-xs font-bold text-wv-accent">
+                      {(u.name || u.username || "?").charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-foreground">{u.name || u.username}</div>
+                      <div className="truncate text-xs text-muted-foreground">@{u.username}</div>
+                    </div>
+                  </div>
                 </td>
-                <td className="px-4 py-3">{ROLE_LABEL[u.role] ?? u.role}</td>
-                <td className="px-4 py-3 text-muted-foreground">{u.mail_address || "—"}</td>
-                <td className="px-4 py-3">
+                <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{ROLE_LABEL[u.role] ?? u.role}</td>
+                <td className="px-5 py-3 text-muted-foreground">{u.mail_address || "—"}</td>
+                <td className="px-5 py-3">
                   {u.two_factor_enabled ? <Badge variant="success">Attivo</Badge> : <span className="text-muted-foreground">—</span>}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      const p = prompt(`Nuova password per ${u.username} (recupero escrow, preserva i report):`);
-                      if (p)
-                        api
-                          .recoverUser(token!, u.id, p)
-                          .then((r) => alert(`Recupero eseguito. Codice di recupero:\n${r.recovery_key}`))
-                          .catch((e) => setError(e.message));
-                    }}
-                  >
-                    Recupera
-                  </Button>{" "}
-                  <Button size="sm" variant="destructive" onClick={() => api.deleteUser(token!, u.id).then(load).catch((e) => setError(e.message))}>
-                    Elimina
-                  </Button>
+                <td className="px-5 py-3">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        const p = prompt(`Nuova password per ${u.username} (recupero escrow, preserva i report):`);
+                        if (p)
+                          api
+                            .recoverUser(token!, u.id, p)
+                            .then((r) => alert(`Recupero eseguito. Codice di recupero:\n${r.recovery_key}`))
+                            .catch((e) => setError(e.message));
+                      }}
+                    >
+                      Recupera
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => api.deleteUser(token!, u.id).then(load).catch((e) => setError(e.message))}>
+                      Elimina
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
+            {users.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-5 py-12 text-center text-sm text-muted-foreground">
+                  Nessun utente.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
