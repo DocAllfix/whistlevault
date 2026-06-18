@@ -54,3 +54,15 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Receipt print / Save-as-PDF: keep only the report code + QR + instructions. */
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}

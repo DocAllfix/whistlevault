@@ -50,19 +50,21 @@ async def test_seed_creates_expected_data(session):
     n_status = await session.scalar(select(func.count()).select_from(SubmissionStatus))
     assert n_status == 3
 
-    # Default questionnaire with one step and four fields (eager-loaded for isolation)
+    # Default questionnaire: realistic multi-step (eager-loaded for isolation)
     q = await session.scalar(
         select(Questionnaire)
         .where(Questionnaire.name == "default")
         .options(selectinload(Questionnaire.steps).selectinload(Step.fields).selectinload(Field.options))
     )
     assert q is not None
-    assert len(q.steps) == 1
-    assert len(q.steps[0].fields) == 4
+    assert len(q.steps) == 3
+    all_fields = [f for st in q.steps for f in st.fields]
+    assert {"voice", "file", "select", "textarea"} <= {f.type for f in all_fields}
 
-    # The 'category' select field has options
-    category = next(f for f in q.steps[0].fields if f.type == "select")
-    assert len(category.options) == 5
+    # The 'categoria' select field has scored options
+    category = next(f for f in all_fields if f.key == "categoria")
+    assert len(category.options) == 7
+    assert any(o.score > 0 for o in category.options)
 
     # Default context linked to questionnaire, admin is a recipient
     ctx = await session.scalar(select(Context))

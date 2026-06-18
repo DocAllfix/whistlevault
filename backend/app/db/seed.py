@@ -95,25 +95,51 @@ async def _seed_default_questionnaire(session: AsyncSession) -> Questionnaire:
         return existing
 
     q = Questionnaire(tenant_id=DEFAULT_TENANT_ID, name="default")
-    step = Step(
-        label={"it": "Segnalazione", "en": "Report"},
-        description={"it": "Descrivi l'accaduto.", "en": "Describe what happened."},
+
+    # --- Step 1: tipo e gravità (con scoring di rischio) ---
+    s1 = Step(
+        label={"it": "Tipo di segnalazione", "en": "Type of report"},
+        description={"it": "Inquadra la segnalazione.", "en": "Classify the report."},
         order=0,
     )
-    category = Field(
+    categoria = Field(
+        key="categoria",
         label={"it": "Categoria", "en": "Category"},
         type="select",
         required=True,
         order=0,
         options=[
-            FieldOption(label={"it": "Corruzione", "en": "Corruption"}, order=0),
-            FieldOption(label={"it": "Frode", "en": "Fraud"}, order=1),
-            FieldOption(label={"it": "Sicurezza sul lavoro", "en": "Workplace safety"}, order=2),
-            FieldOption(label={"it": "Privacy / dati", "en": "Privacy / data"}, order=3),
-            FieldOption(label={"it": "Altro", "en": "Other"}, order=4),
+            FieldOption(label={"it": "Corruzione", "en": "Corruption"}, score=5, order=0),
+            FieldOption(label={"it": "Frode", "en": "Fraud"}, score=5, order=1),
+            FieldOption(label={"it": "Molestie / discriminazione", "en": "Harassment / discrimination"}, score=4, order=2),
+            FieldOption(label={"it": "Sicurezza sul lavoro", "en": "Workplace safety"}, score=3, order=3),
+            FieldOption(label={"it": "Privacy / dati", "en": "Privacy / data"}, score=3, order=4),
+            FieldOption(label={"it": "Ambiente", "en": "Environment"}, score=3, order=5),
+            FieldOption(label={"it": "Altro", "en": "Other"}, score=1, order=6),
         ],
     )
-    description = Field(
+    gravita = Field(
+        key="gravita",
+        label={"it": "Gravità percepita", "en": "Perceived severity"},
+        type="select",
+        required=True,
+        order=1,
+        options=[
+            FieldOption(label={"it": "Bassa", "en": "Low"}, score=0, order=0),
+            FieldOption(label={"it": "Media", "en": "Medium"}, score=2, order=1),
+            FieldOption(label={"it": "Alta", "en": "High"}, score=5, order=2),
+        ],
+    )
+    s1.fields = [categoria, gravita]
+
+    # --- Step 2: dettagli (con un campo CONDIZIONALE) ---
+    s2 = Step(
+        label={"it": "Dettagli", "en": "Details"},
+        description={"it": "Racconta cosa è successo.", "en": "Describe what happened."},
+        order=1,
+    )
+    descrizione = Field(
+        key="descrizione",
         label={"it": "Descrizione", "en": "Description"},
         hint={
             "it": "Cosa è successo, quando, chi è coinvolto.",
@@ -121,22 +147,76 @@ async def _seed_default_questionnaire(session: AsyncSession) -> Questionnaire:
         },
         type="textarea",
         required=True,
-        order=1,
+        order=0,
     )
-    when = Field(
+    quando = Field(
+        key="quando",
         label={"it": "Data dell'accaduto", "en": "Date of the event"},
         type="date",
         required=False,
+        order=1,
+    )
+    dove = Field(
+        key="dove",
+        label={"it": "Luogo / reparto", "en": "Place / department"},
+        type="text",
+        required=False,
         order=2,
     )
-    evidence = Field(
+    # Compare solo se la Categoria selezionata è "Corruzione" (logica condizionale).
+    apicali = Field(
+        key="figure_apicali",
+        label={
+            "it": "Sono coinvolte figure apicali o dirigenti?",
+            "en": "Are senior managers/executives involved?",
+        },
+        type="select",
+        required=False,
+        order=3,
+        trigger_field_key="categoria",
+        trigger_value="Corruzione",
+        options=[
+            FieldOption(label={"it": "Sì", "en": "Yes"}, score=3, order=0),
+            FieldOption(label={"it": "No", "en": "No"}, score=0, order=1),
+        ],
+    )
+    s2.fields = [descrizione, quando, dove, apicali]
+
+    # --- Step 3: prove e allegati (file + registrazione vocale) ---
+    s3 = Step(
+        label={"it": "Prove e allegati", "en": "Evidence and attachments"},
+        description={
+            "it": "Aggiungi documenti o una segnalazione vocale (facoltativi).",
+            "en": "Add documents or a voice report (optional).",
+        },
+        order=2,
+    )
+    prove = Field(
+        key="prove",
+        label={"it": "Elementi a supporto", "en": "Supporting elements"},
+        hint={"it": "Riferimenti, testimoni, documenti…", "en": "References, witnesses, documents…"},
+        type="textarea",
+        required=False,
+        order=0,
+    )
+    allegati = Field(
+        key="allegati",
         label={"it": "Allegati (facoltativi)", "en": "Attachments (optional)"},
         type="file",
         required=False,
-        order=3,
+        order=1,
     )
-    step.fields = [category, description, when, evidence]
-    q.steps = [step]
+    vocale = Field(
+        key="vocale",
+        label={"it": "Segnalazione vocale (facoltativa)", "en": "Voice report (optional)"},
+        hint={"it": "Puoi registrare un messaggio audio.", "en": "You can record an audio message."},
+        type="voice",
+        required=False,
+        order=2,
+    )
+    s3.fields = [prove, allegati, vocale]
+
+    q.steps = [s1, s2, s3]
     session.add(q)
     await session.flush()
     return q
@@ -159,6 +239,9 @@ async def _seed_default_context(
         },
         questionnaire_id=questionnaire.id,
         tip_ttl_days=90,
+        # Soglie di rischio: una segnalazione con score >= 8 è marcata "importante".
+        score_threshold_medium=4,
+        score_threshold_high=8,
     )
     session.add(context)
     await session.flush()

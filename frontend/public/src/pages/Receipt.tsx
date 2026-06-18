@@ -37,6 +37,15 @@ export function Receipt() {
     }
   }
 
+  function downloadQr() {
+    const url = canvasRef.current?.toDataURL("image/png");
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "whistlevault-ricevuta-qr.png";
+    a.click();
+  }
+
   return (
     <div className="mx-auto max-w-md px-5 py-12">
       <h1 className="text-3xl">{t("sent_title")}</h1>
@@ -58,14 +67,22 @@ export function Receipt() {
           <div className="rounded-md border bg-white p-3 leading-[0]">
             <canvas ref={canvasRef} aria-label={t("code_label")} />
           </div>
-          <Button variant="secondary" onClick={copy}>
-            {copied ? <Check size={18} /> : <Copy size={18} />}
-            {copied ? t("copied") : t("copy_code")}
-          </Button>
+          <div className="no-print flex flex-wrap gap-3">
+            <Button variant="secondary" onClick={copy}>
+              {copied ? <Check size={18} /> : <Copy size={18} />}
+              {copied ? t("copied") : t("copy_code")}
+            </Button>
+            <Button variant="secondary" onClick={downloadQr}>
+              {t("download_qr")}
+            </Button>
+            <Button variant="secondary" onClick={() => window.print()}>
+              {t("print_receipt")}
+            </Button>
+          </div>
         </div>
       </Card>
 
-      <Button asChild className="mt-6">
+      <Button asChild className="no-print mt-6">
         <Link to="/controlla">
           {t("go_check")}
           <ArrowRight size={18} />

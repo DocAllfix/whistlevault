@@ -11,6 +11,8 @@ const dict: Record<Lang, Record<string, string>> = {
     brand: "Canale di segnalazione",
     footer:
       "Questo canale è riservato e protetto. Le segnalazioni sono cifrate e gestite secondo la Direttiva (UE) 2019/1937 e il D.lgs. 24/2023. Non vengono registrati indirizzi IP né dati di navigazione.",
+    privacy_link: "Informativa privacy",
+    legal_link: "Note legali",
     landing_h1: "Segnala in modo sicuro e riservato",
     landing_lead:
       "Questo canale ti permette di segnalare illeciti o irregolarità in modo confidenziale. La tua identità è protetta e nessuna ritorsione è ammessa.",
@@ -89,6 +91,8 @@ const dict: Record<Lang, Record<string, string>> = {
       " È l'unico modo per rientrare, leggere le risposte e aggiungere informazioni. Non potrà essere recuperato se lo perdi.",
     copy_code: "Copia codice",
     copied: "Copiato",
+    download_qr: "Scarica QR",
+    print_receipt: "Stampa / Salva PDF",
     go_check: 'Vai a "Controlla la tua segnalazione"',
     check_title: "Controlla la tua segnalazione",
     check_sub: "Inserisci il codice di 20 cifre ricevuto al momento dell'invio.",
@@ -118,6 +122,8 @@ const dict: Record<Lang, Record<string, string>> = {
     brand: "Reporting channel",
     footer:
       "This channel is confidential and protected. Reports are encrypted and handled under EU Directive 2019/1937 and Italian Decree 24/2023. No IP addresses or browsing data are recorded.",
+    privacy_link: "Privacy notice",
+    legal_link: "Legal notice",
     landing_h1: "Report safely and confidentially",
     landing_lead:
       "This channel lets you report wrongdoing confidentially. Your identity is protected and retaliation is not allowed.",
@@ -195,6 +201,8 @@ const dict: Record<Lang, Record<string, string>> = {
       " It is the only way to return, read replies and add information. It cannot be recovered if you lose it.",
     copy_code: "Copy code",
     copied: "Copied",
+    download_qr: "Download QR",
+    print_receipt: "Print / Save PDF",
     go_check: 'Go to "Check your report"',
     check_title: "Check your report",
     check_sub: "Enter the 20-digit code you received when submitting.",

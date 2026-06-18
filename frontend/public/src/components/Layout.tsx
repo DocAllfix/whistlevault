@@ -75,6 +75,14 @@ export function Layout({ children }: { children: ReactNode }) {
             {title}
           </span>
           <p className="max-w-[70ch] text-sm leading-relaxed">{t("footer")}</p>
+          <nav className="flex w-full flex-wrap gap-4 text-sm">
+            <Link to="/privacy" className="text-white/80 underline-offset-4 hover:text-white hover:underline">
+              {t("privacy_link")}
+            </Link>
+            <Link to="/note-legali" className="text-white/80 underline-offset-4 hover:text-white hover:underline">
+              {t("legal_link")}
+            </Link>
+          </nav>
         </div>
       </footer>
     </div>

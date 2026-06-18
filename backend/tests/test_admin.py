@@ -18,7 +18,8 @@ async def test_public_config_and_context(client, engine):
     ctx_id = cfg["contexts"][0]["id"]
     ctx = (await ac.get(f"/api/public/contexts/{ctx_id}")).json()
     assert ctx["questionnaire"] is not None
-    assert len(ctx["questionnaire"]["steps"][0]["fields"]) == 4
+    assert len(ctx["questionnaire"]["steps"]) == 3
+    assert len(ctx["questionnaire"]["steps"][0]["fields"]) == 2
 
 
 @pytest.mark.asyncio

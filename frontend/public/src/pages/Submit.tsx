@@ -191,7 +191,7 @@ export function Submit() {
             s.fields.filter(isVisible).map((f) => (
               <div key={f.id} className="py-4">
                 <div className="text-sm font-semibold text-wv-navy">{loc(f.label, lang)}</div>
-                <div className="mt-0.5 text-secondary-foreground/80">{formatValue(answers[f.id])}</div>
+                <div className="mt-0.5 text-foreground [text-wrap:pretty]">{formatValue(answers[f.id])}</div>
               </div>
             )),
           )}
