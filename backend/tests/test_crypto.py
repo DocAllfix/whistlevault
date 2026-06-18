@@ -33,7 +33,7 @@ def test_password_verification():
 
 def test_receipt_format():
     r = crypto.generate_receipt()
-    assert len(r) == 16 and r.isdigit()
+    assert len(r) == 20 and r.isdigit()
     assert crypto.hash_receipt(r) == crypto.hash_receipt(r)
 
 

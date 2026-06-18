@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     smtp_host: str = "localhost"
     smtp_port: int = 1025
     smtp_from: str = "no-reply@whistleblower.local"
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_starttls: bool = True
+
+    # Receipt lookup pepper (HMAC key). MUST be a strong secret in production;
+    # never stored in the DB. Without it a DB dump cannot brute-force receipts.
+    receipt_pepper: str = "dev-only-pepper-change-me"
 
     # Sessions / auth
     session_ttl_minutes: int = 120
@@ -39,6 +46,20 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    def validate_for_production(self) -> None:
+        """Fail-fast on insecure config when running in production.
+
+        Refuses to boot with example/placeholder secrets so a misconfigured
+        deploy can never go live with a weak receipt pepper.
+        """
+        if not self.is_production:
+            return
+        problems: list[str] = []
+        if not self.receipt_pepper or "change-me" in self.receipt_pepper.lower():
+            problems.append("WB_RECEIPT_PEPPER must be set to a strong unique secret")
+        if problems:
+            raise RuntimeError("Insecure production configuration: " + "; ".join(problems))
 
 
 @lru_cache

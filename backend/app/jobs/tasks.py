@@ -7,6 +7,7 @@ from datetime import timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import audit
 from app.auth.sessions import store
 from app.db.base import utcnow
 from app.db.models import Context, Mail, Report, ReportFile
@@ -54,6 +55,9 @@ async def run_retention(db: AsyncSession) -> int:
         for f in files:
             if f.reference_id:
                 storage.delete(f.reference_id)
+        await audit.log(
+            db, tenant_id=report.tenant_id, type="retention_delete", object_id=report.id
+        )
         await db.delete(report)  # cascades to answers/comments/files/recipient links
         count += 1
     await db.commit()

@@ -610,4 +610,8 @@ async def delete_redaction(
     if red.entry == "permanent":
         raise CaseError("Cannot undo a permanent redaction")
     await db.delete(red)
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="redaction_delete", user_id=session.user_id,
+        object_id=report_id,
+    )
     await db.commit()

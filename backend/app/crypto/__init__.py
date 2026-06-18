@@ -22,6 +22,7 @@ All binary values are returned/consumed as base64 strings for DB storage.
 
 import base64
 import hashlib
+import hmac
 import secrets
 
 import nacl.pwhash
@@ -119,14 +120,24 @@ def verify_password(password: str, salt_b64: str, expected_hash: str) -> bytes |
 
 
 # --- Whistleblower receipt --------------------------------------------------
+RECEIPT_DIGITS = 20  # 20 digits ≈ 2^66 (defense-in-depth over the legacy 16/2^53).
+
+
 def generate_receipt() -> str:
-    """16-digit numeric receipt (no account, no email)."""
-    return "".join(secrets.choice("0123456789") for _ in range(16))
+    """20-digit numeric receipt (no account, no email)."""
+    return "".join(secrets.choice("0123456789") for _ in range(RECEIPT_DIGITS))
 
 
-def hash_receipt(receipt: str) -> str:
-    """Lookup hash for the receipt (indexed in DB). Not used for key derivation."""
-    return hashlib.sha256(receipt.encode("utf-8")).hexdigest()
+def hash_receipt(value: str) -> str:
+    """Peppered lookup hash for the receipt / wb_pub (indexed in DB).
+
+    HMAC-SHA256 with a server-side pepper (WB_RECEIPT_PEPPER, kept in the
+    environment, never in the DB). A DB-only attacker therefore cannot
+    brute-force the lookup to confirm receipt guesses: without the pepper the
+    keyspace stays computationally closed. Not used for key derivation.
+    """
+    pepper = get_settings().receipt_pepper.encode("utf-8")
+    return hmac.new(pepper, value.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 # --- Report key custody -----------------------------------------------------

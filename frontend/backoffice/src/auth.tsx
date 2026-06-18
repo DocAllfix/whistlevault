@@ -4,8 +4,15 @@ interface AuthState {
   token: string | null;
   role: string | null;
   pwdChangeNeeded: boolean;
-  login: (token: string, role: string, pwdChangeNeeded?: boolean) => void;
+  twoFaSetupNeeded: boolean;
+  login: (
+    token: string,
+    role: string,
+    pwdChangeNeeded?: boolean,
+    twoFaSetupNeeded?: boolean,
+  ) => void;
   clearPwdChange: () => void;
+  clearTwoFa: () => void;
   logout: () => void;
 }
 
@@ -15,22 +22,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [pwdChangeNeeded, setPwdChangeNeeded] = useState(false);
+  const [twoFaSetupNeeded, setTwoFaSetupNeeded] = useState(false);
   return (
     <AuthContext.Provider
       value={{
         token,
         role,
         pwdChangeNeeded,
-        login: (t, r, needed = false) => {
+        twoFaSetupNeeded,
+        login: (t, r, needed = false, twoFa = false) => {
           setToken(t);
           setRole(r);
           setPwdChangeNeeded(needed);
+          setTwoFaSetupNeeded(twoFa);
         },
         clearPwdChange: () => setPwdChangeNeeded(false),
+        clearTwoFa: () => setTwoFaSetupNeeded(false),
         logout: () => {
           setToken(null);
           setRole(null);
           setPwdChangeNeeded(false);
+          setTwoFaSetupNeeded(false);
         },
       }}
     >

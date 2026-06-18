@@ -45,7 +45,7 @@ async def test_full_whistleblower_flow(client, engine):
     submit = await ac.post("/api/report", json={"answers": answers})
     assert submit.status_code == 200
     body = submit.json()
-    assert len(body["receipt"]) == 16 and body["receipt"].isdigit()
+    assert len(body["receipt"]) == 20 and body["receipt"].isdigit()
     receipt = body["receipt"]
 
     # 2. Re-enter anonymously with the receipt (fresh session)

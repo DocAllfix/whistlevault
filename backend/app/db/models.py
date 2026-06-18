@@ -49,6 +49,11 @@ class Tenant(TimestampMixin, Base):
     settings: Mapped[dict] = mapped_column(JSONType, default=dict, nullable=False)
     # Tenant escrow public key (for controlled administrative recovery).
     escrow_pub: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # Per-tenant hostnames for multi-tenant routing (resolved from the Host
+    # header). Empty in single-tenant deployments, where the sole active tenant
+    # is used regardless of host. See app.core.tenancy.resolve_tenant_id.
+    public_domain: Mapped[str] = mapped_column(Text, default="", nullable=False, index=True)
+    backoffice_domain: Mapped[str] = mapped_column(Text, default="", nullable=False, index=True)
 
 
 # ---------------------------------------------------------------------------

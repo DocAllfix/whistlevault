@@ -22,11 +22,14 @@ function fromB64(s: string): Uint8Array {
   return sodium.from_base64(s, sodium.base64_variants.ORIGINAL);
 }
 
-/** 16-digit receipt, generated on the client and never sent to the server. */
+const RECEIPT_DIGITS = 20; // 20 digits ≈ 2^66 (defense-in-depth, was 16/2^53).
+const ZK_SALT_INFO = "wv-zk-v2"; // domain separation for the receipt-derived salt.
+
+/** 20-digit receipt, generated on the client and never sent to the server. */
 export function generateReceipt(): string {
-  const bytes = sodium.randombytes_buf(16);
+  const bytes = sodium.randombytes_buf(RECEIPT_DIGITS);
   let r = "";
-  for (let i = 0; i < 16; i++) r += (bytes[i] % 10).toString();
+  for (let i = 0; i < RECEIPT_DIGITS; i++) r += (bytes[i] % 10).toString();
   return r;
 }
 
@@ -35,16 +38,40 @@ async function sha256(bytes: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(buf);
 }
 
-/** Derive the whistleblower keypair deterministically from the receipt. */
+/**
+ * Derive the whistleblower keypair from the receipt using a memory-hard KDF
+ * (Argon2id), NOT a plain hash. This is the anti-deanonymisation control: an
+ * attacker holding a stolen DB + ciphertext can only brute-force the receipt at
+ * ~Argon2id cost per guess (64 MiB memory-hard), which makes the 2^66 keyspace
+ * computationally closed even for a well-resourced adversary (e.g. the employer).
+ * INTERACTIVE limits keep it feasible on low-end mobile devices for the genuine
+ * reporter (one derivation), while the 64 MiB memory cost defeats GPU/ASIC
+ * parallelism. The salt is deterministic from the receipt so re-entry needs no
+ * server round-trip (salts are not secret; the cost, not the salt, is the guard).
+ */
 export async function wbKeypair(receipt: string): Promise<WbKeypair> {
-  const prv = await sha256(sodium.from_string(receipt)); // 32 bytes = private scalar
+  const saltSrc = await sha256(sodium.from_string(receipt + ZK_SALT_INFO));
+  const salt = saltSrc.slice(0, sodium.crypto_pwhash_SALTBYTES); // 16 bytes
+  const prv = sodium.crypto_pwhash(
+    32, // 32-byte private scalar
+    receipt,
+    salt,
+    sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
+    sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
+    sodium.crypto_pwhash_ALG_ARGON2ID13,
+  );
   const pub = sodium.crypto_scalarmult_base(prv);
   return { prv, pub, pubB64: b64(pub) };
 }
 
-/** Lookup id = sha256(wb_pub_b64) hex — matches the backend's stored hash. */
-export async function lookupFor(pubB64: string): Promise<string> {
-  return sodium.to_hex(await sha256(sodium.from_string(pubB64)));
+/**
+ * Re-entry lookup value = the wb public key itself (a public value, never the
+ * receipt). The SERVER applies a peppered HMAC over it to find the report, so a
+ * stolen DB cannot reproduce the lookup offline (the pepper never leaves the
+ * server). The client therefore sends `pubB64` as-is.
+ */
+export function lookupValue(pub: WbKeypair): string {
+  return pub.pubB64;
 }
 
 /** Unseal the report private key with the receipt-derived keypair. */

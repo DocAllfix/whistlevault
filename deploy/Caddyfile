@@ -17,11 +17,19 @@
 		file_server
 	}
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
+		Cross-Origin-Opener-Policy "same-origin"
+		Permissions-Policy "geolocation=(), camera=(), microphone=()"
+		# M2: CSP for the SPA. script-src 'self' (Vite emits external modules);
+		# 'unsafe-inline' is needed only for inline STYLE attributes set at runtime
+		# (framer-motion / driver.js), not for scripts. API is same-origin.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 	}
+	# H3 / privacy: access logging stays OFF (Caddy default) so the reporter IP is
+	# never written to disk. If you must enable `log`, strip request>remote_ip.
 }
 
 # --- Backoffice (handlers) --------------------------------------------------
@@ -40,9 +48,17 @@
 		file_server
 	}
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
+		Cross-Origin-Opener-Policy "same-origin"
+		Permissions-Policy "geolocation=(), camera=(), microphone=()"
+		# M2: CSP for the SPA. script-src 'self' (Vite emits external modules);
+		# 'unsafe-inline' is needed only for inline STYLE attributes set at runtime
+		# (framer-motion / driver.js), not for scripts. API is same-origin.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 	}
+	# H3 / privacy: access logging stays OFF (Caddy default) so the reporter IP is
+	# never written to disk. If you must enable `log`, strip request>remote_ip.
 }

@@ -5,9 +5,11 @@ RUN useradd --create-home --uid 1000 appuser
 
 WORKDIR /app
 
-# Install deps first for layer caching.
-COPY pyproject.toml ./
-RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir .
+# Install deps first for layer caching. The lock file (M8) pins every runtime
+# dependency to an audited version (reproducible builds); used as a constraints
+# file so only the project's runtime deps are installed, at the locked versions.
+COPY pyproject.toml requirements.lock ./
+RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -c requirements.lock .
 
 COPY . .
 

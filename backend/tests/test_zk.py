@@ -42,9 +42,9 @@ async def test_zero_knowledge_return_channel(client, engine):
     assert submit.status_code == 200
     assert submit.json()["receipt"] == ""  # ZK mode: no server-issued receipt
 
-    # Re-entry by lookup = sha256(wb_pub); the server derives no key.
-    lookup = hashlib.sha256(wb_pub_b64.encode()).hexdigest()
-    re = await ac.post("/api/auth/receipt", json={"lookup": lookup})
+    # Re-entry: the client sends wb_pub (public); the server applies the peppered
+    # HMAC lookup itself and derives no key.
+    re = await ac.post("/api/auth/receipt", json={"lookup": wb_pub_b64})
     assert re.status_code == 200
     tok = re.json()["token"]
 
@@ -65,7 +65,7 @@ async def test_legacy_receipt_flow_still_works(client, engine):
     ac, _ = client
     answers = await _answers(engine)
     submit = (await ac.post("/api/report", json={"answers": answers})).json()
-    assert len(submit["receipt"]) == 16
+    assert len(submit["receipt"]) == 20
     re = await ac.post("/api/auth/receipt", json={"receipt": submit["receipt"]})
     assert re.status_code == 200
     view = (await ac.get("/api/report/me", headers=_auth(re.json()["token"]))).json()

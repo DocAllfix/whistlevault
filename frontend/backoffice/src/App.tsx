@@ -9,6 +9,7 @@ import { AuditLog } from "./pages/AuditLog";
 import { CaseDetail } from "./pages/CaseDetail";
 import { Custodian } from "./pages/Custodian";
 import { Dashboard } from "./pages/Dashboard";
+import { Force2FA } from "./pages/Force2FA";
 import { ForcePasswordChange } from "./pages/ForcePasswordChange";
 import { Login } from "./pages/Login";
 import { Settings } from "./pages/Settings";
@@ -18,9 +19,10 @@ import { Questionnaires } from "./pages/admin/Questionnaires";
 import { Users } from "./pages/admin/Users";
 
 function Protected({ children }: { children: JSX.Element }) {
-  const { token, pwdChangeNeeded } = useAuth();
+  const { token, pwdChangeNeeded, twoFaSetupNeeded } = useAuth();
   if (!token) return <Navigate to="/login" replace />;
   if (pwdChangeNeeded) return <ForcePasswordChange />;
+  if (twoFaSetupNeeded) return <Force2FA />;
   return children;
 }
 

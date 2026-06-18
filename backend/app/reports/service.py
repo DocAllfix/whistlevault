@@ -330,7 +330,7 @@ async def add_whistleblower_file(
     db: AsyncSession, session: Session, *, filename: str, content_type: str, content: bytes
 ) -> str:
     report = await get_report_for_session(db, session)
-    reference_id = storage.store_encrypted(report.crypto_pub_key, content)
+    reference_id = storage.store_encrypted(report.crypto_pub_key, content, tenant_id=report.tenant_id)
     rf = ReportFile(
         report_id=report.id,
         author_id=None,

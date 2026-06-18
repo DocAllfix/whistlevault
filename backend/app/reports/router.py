@@ -6,15 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import SESSION_COOKIE, require_whistleblower
 from app.auth.sessions import Session, store
+from app.core import ratelimit
 from app.core.config import get_settings
+from app.core.tenancy import resolve_tenant_id
 from app.db.base import get_session
 from app.db.models import Context
 from app.reports import service
 from app.reports.schemas import CommentRequest, CreateReportRequest, CreateReportResponse
 
 router = APIRouter(prefix="/api/report", tags=["whistleblower"])
-
-DEFAULT_TENANT_ID = 1
 
 
 def _set_cookie(response: Response, token: str) -> None:
@@ -30,13 +30,21 @@ def _set_cookie(response: Response, token: str) -> None:
 
 @router.post("", response_model=CreateReportResponse)
 async def submit_report(
-    body: CreateReportRequest, response: Response, db: AsyncSession = Depends(get_session)
+    body: CreateReportRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_session),
+    tenant_id: int = Depends(resolve_tenant_id),
 ) -> CreateReportResponse:
+    # Anti-spam/DoS without tracking the reporter: a coarse per-instance bucket
+    # (no IP, no identifier persisted). Stronger anti-abuse (Proof-of-Work) is on
+    # the roadmap; this caps floods of bogus submissions (M1).
+    if not ratelimit.allow(f"report_submit:{tenant_id}", limit=30, window_seconds=60):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many requests")
     context_id = body.context_id
     if context_id is None:
         context_id = await db.scalar(
             select(Context.id)
-            .where(Context.tenant_id == DEFAULT_TENANT_ID, Context.hidden.is_(False))
+            .where(Context.tenant_id == tenant_id, Context.hidden.is_(False))
             .order_by(Context.order)
             .limit(1)
         )
@@ -46,7 +54,7 @@ async def submit_report(
     try:
         report, receipt, report_prv = await service.create_report(
             db,
-            tenant_id=DEFAULT_TENANT_ID,
+            tenant_id=tenant_id,
             context_id=context_id,
             answers=body.answers,
             identity=body.identity,
@@ -58,7 +66,7 @@ async def submit_report(
     # In zero-knowledge mode the server holds no report key (report_prv is None).
     session = Session(
         kind="whistleblower",
-        tenant_id=DEFAULT_TENANT_ID,
+        tenant_id=tenant_id,
         role="whistleblower",
         report_id=str(report.id),
         report_key=report_prv or "",
@@ -81,6 +89,8 @@ async def add_comment(
     session: Session = Depends(require_whistleblower),
     db: AsyncSession = Depends(get_session),
 ) -> dict:
+    if not ratelimit.allow(f"wbcomment:{session.report_id}", limit=20, window_seconds=60):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many requests")
     if not body.content.strip():
         raise HTTPException(status_code=400, detail="Empty comment")
     await service.add_whistleblower_comment(db, session, body.content)
@@ -93,6 +103,8 @@ async def upload_file(
     session: Session = Depends(require_whistleblower),
     db: AsyncSession = Depends(get_session),
 ) -> dict:
+    if not ratelimit.allow(f"wbfile:{session.report_id}", limit=20, window_seconds=300):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many requests")
     content = await file.read()
     if len(content) > get_settings().max_upload_bytes:
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="File too large")

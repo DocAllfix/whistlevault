@@ -1,6 +1,8 @@
 """Case-management API for handlers (recipient/admin) and custodian."""
 
+import re
 import uuid
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +26,17 @@ custodian_router = APIRouter(prefix="/api/custodian", tags=["custodian"])
 
 _handler = require_roles("recipient", "admin")
 _custodian = require_roles("custodian")
+
+
+def _content_disposition(name: str) -> str:
+    """Safe Content-Disposition for an untrusted (whistleblower-supplied) filename.
+
+    Strips CR/LF/control characters (header injection, M3) and emits both an
+    ASCII fallback and an RFC 5987 percent-encoded ``filename*`` for full Unicode.
+    """
+    ascii_fallback = re.sub(r"[^\x20-\x7e]", "_", name).replace('"', "").replace("\\", "_").strip()
+    ascii_fallback = ascii_fallback or "attachment"
+    return f"attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{quote(name, safe='')}"
 
 
 @router.get("")
@@ -75,11 +88,12 @@ async def download_file(
     db: AsyncSession = Depends(get_session),
 ) -> Response:
     name, content_type, content = await service.get_file(db, session, report_id, file_id)
-    safe = name.replace('"', "")
+    # M6: never trust the client-declared content_type for an attachment served to
+    # a handler — force a non-executable type and rely on Content-Disposition.
     return Response(
         content=content,
-        media_type=content_type,
-        headers={"Content-Disposition": f'attachment; filename="{safe}"'},
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": _content_disposition(name)},
     )
 
 
@@ -93,7 +107,7 @@ async def export_case(
     return Response(
         content=content,
         media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+        headers={"Content-Disposition": _content_disposition(name)},
     )
 
 

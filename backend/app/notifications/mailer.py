@@ -14,9 +14,14 @@ async def send(*, to: str, subject: str, body: str) -> None:
     message["To"] = to
     message["Subject"] = subject
     message.set_content(body)
+    # M4: authenticate to the relay and use STARTTLS when configured (real relays
+    # require credentials over TLS; dev MailHog has neither).
+    use_tls = settings.smtp_starttls and settings.is_production
     await aiosmtplib.send(
         message,
         hostname=settings.smtp_host,
         port=settings.smtp_port,
-        start_tls=settings.is_production,  # dev MailHog has no TLS
+        start_tls=use_tls,
+        username=settings.smtp_username or None,
+        password=settings.smtp_password or None,
     )

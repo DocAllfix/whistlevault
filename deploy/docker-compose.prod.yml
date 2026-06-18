@@ -30,12 +30,18 @@ services:
       WB_SMTP_HOST: ${SMTP_HOST}
       WB_SMTP_PORT: ${SMTP_PORT}
       WB_SMTP_FROM: ${SMTP_FROM}
+      WB_SMTP_USERNAME: ${SMTP_USERNAME}
+      WB_SMTP_PASSWORD: ${SMTP_PASSWORD}
       WB_CORS_ORIGINS: https://${PUBLIC_DOMAIN},https://${BACKOFFICE_DOMAIN}
       WB_ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # H2: server-side pepper for the receipt lookup HMAC (never in the DB).
+      WB_RECEIPT_PEPPER: ${RECEIPT_PEPPER}
       PYTHONPATH: /app
       WB_FILES_PATH: /data
     # Apply migrations, seed defaults + initial admin, then serve.
-    command: sh -c "alembic upgrade head && python scripts/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    # H3: --no-access-log so per-request data (which, via X-Forwarded-For, could
+    # carry the reporter IP) is never written to logs. Privacy by default.
+    command: sh -c "alembic upgrade head && python scripts/init_db.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log"
     volumes:
       - files_data:/data
     depends_on:

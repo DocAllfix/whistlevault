@@ -10,13 +10,12 @@ from sqlalchemy.orm import selectinload
 
 from app.admin.serializers import serialize_questionnaire
 from app.core import ratelimit
+from app.core.tenancy import resolve_tenant_id
 from app.db.base import get_session
 from app.db.models import Context, Field, Questionnaire, Step, Tenant
 from app.notifications import service as notifications
 
 router = APIRouter(prefix="/api/public", tags=["public"])
-
-DEFAULT_TENANT_ID = 1
 
 
 class SignupRequest(BaseModel):
@@ -25,16 +24,25 @@ class SignupRequest(BaseModel):
 
 
 @router.post("/signup")
-async def signup(body: SignupRequest, db: AsyncSession = Depends(get_session)) -> dict:
-    """Lightweight 'request access' for prospective clients. Always returns ok."""
+async def signup(
+    body: SignupRequest,
+    db: AsyncSession = Depends(get_session),
+    tenant_id: int = Depends(resolve_tenant_id),
+) -> dict:
+    """Lightweight 'request access' for prospective clients. Always returns ok.
+
+    The notification is sent ONLY to the tenant owner's configured address
+    (settings.signup_notify_email), never to the user-supplied email — so the
+    endpoint cannot be abused to relay/bomb arbitrary addresses (M9).
+    """
     if not ratelimit.allow(f"signup:{body.email}", limit=3, window_seconds=3600):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many requests")
-    tenant = await db.get(Tenant, DEFAULT_TENANT_ID)
+    tenant = await db.get(Tenant, tenant_id)
     notify = (tenant.settings or {}).get("signup_notify_email") if tenant else None
     if notify:
         await notifications.enqueue(
             db,
-            tenant_id=DEFAULT_TENANT_ID,
+            tenant_id=tenant_id,
             address=notify,
             subject="Nuova richiesta di attivazione",
             body=f"Richiesta di attivazione da: {body.organization} <{body.email}>",
@@ -44,12 +52,15 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_session)) -
 
 
 @router.get("")
-async def public_config(db: AsyncSession = Depends(get_session)) -> dict:
-    tenant = await db.get(Tenant, DEFAULT_TENANT_ID)
+async def public_config(
+    db: AsyncSession = Depends(get_session),
+    tenant_id: int = Depends(resolve_tenant_id),
+) -> dict:
+    tenant = await db.get(Tenant, tenant_id)
     contexts = (
         await db.scalars(
             select(Context)
-            .where(Context.tenant_id == DEFAULT_TENANT_ID, Context.hidden.is_(False))
+            .where(Context.tenant_id == tenant_id, Context.hidden.is_(False))
             .order_by(Context.order)
         )
     ).all()
@@ -68,9 +79,13 @@ async def public_config(db: AsyncSession = Depends(get_session)) -> dict:
 
 
 @router.get("/contexts/{context_id}")
-async def public_context(context_id: uuid.UUID, db: AsyncSession = Depends(get_session)) -> dict:
+async def public_context(
+    context_id: uuid.UUID,
+    db: AsyncSession = Depends(get_session),
+    tenant_id: int = Depends(resolve_tenant_id),
+) -> dict:
     ctx = await db.get(Context, context_id)
-    if ctx is None or ctx.tenant_id != DEFAULT_TENANT_ID or ctx.hidden:
+    if ctx is None or ctx.tenant_id != tenant_id or ctx.hidden:
         raise HTTPException(status_code=404, detail="Channel not found")
     questionnaire = None
     if ctx.questionnaire_id:

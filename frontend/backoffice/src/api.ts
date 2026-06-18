@@ -56,10 +56,12 @@ export interface CaseDetail {
 
 export const api = {
   login: (username: string, password: string, totp_code?: string) =>
-    req<{ token: string; role: string; password_change_needed: boolean }>(
-      "/auth/login",
-      j({ username, password, totp_code }),
-    ),
+    req<{
+      token: string;
+      role: string;
+      password_change_needed: boolean;
+      two_factor_setup_required: boolean;
+    }>("/auth/login", j({ username, password, totp_code })),
 
   twofaInit: (t: string) =>
     req<{ secret: string; otpauth_uri: string }>("/auth/2fa/init", { method: "POST" }, t),

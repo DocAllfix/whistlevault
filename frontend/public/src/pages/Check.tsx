@@ -10,7 +10,7 @@ import { Notice } from "../components/ui/notice";
 import { Textarea } from "../components/ui/textarea";
 import { cn } from "../lib/utils";
 import { useI18n } from "../i18n";
-import { decryptToString, initZk, lookupFor, unsealReportPrv, WbKeypair, wbKeypair } from "../zk";
+import { decryptToString, initZk, lookupValue, unsealReportPrv, WbKeypair, wbKeypair } from "../zk";
 
 export function Check() {
   const { t } = useI18n();
@@ -43,7 +43,7 @@ export function Check() {
     try {
       await initZk();
       const keypair = await wbKeypair(receipt.trim());
-      const res = await api.receiptAuth({ lookup: await lookupFor(keypair.pubB64) });
+      const res = await api.receiptAuth({ lookup: lookupValue(keypair) });
       setToken(res.token);
       setKp(keypair);
       await loadDecrypt(res.token, keypair);

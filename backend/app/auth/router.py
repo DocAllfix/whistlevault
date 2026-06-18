@@ -16,7 +16,9 @@ from app.auth.deps import SESSION_COOKIE, _extract_token, get_current_session
 from app.auth.sessions import Session, store
 from app.core import ratelimit
 from app.core.config import get_settings
+from app.core.tenancy import resolve_tenant_id
 from app.db.base import get_session, utcnow
+from app.db.enums import UserRole
 from app.db.models import AppUser, Report
 from app.notifications import service as notifications
 
@@ -24,7 +26,6 @@ RESET_TTL_MINUTES = 60
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-DEFAULT_TENANT_ID = 1
 _PERMISSION_FLAGS = (
     "can_delete_submission",
     "can_postpone_expiration",
@@ -86,7 +87,10 @@ def _set_cookie(response: Response, token: str) -> None:
 
 @router.post("/login")
 async def login(
-    body: LoginRequest, response: Response, db: AsyncSession = Depends(get_session)
+    body: LoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_session),
+    tenant_id: int = Depends(resolve_tenant_id),
 ) -> dict:
     if not ratelimit.allow(f"login:{body.username}", limit=5, window_seconds=60):
         raise HTTPException(
@@ -95,7 +99,7 @@ async def login(
 
     user = await db.scalar(
         select(AppUser).where(
-            AppUser.tenant_id == DEFAULT_TENANT_ID,
+            AppUser.tenant_id == tenant_id,
             AppUser.username == body.username,
             AppUser.enabled.is_(True),
         )
@@ -134,10 +138,13 @@ async def login(
     )
     token = store.create(session)
     _set_cookie(response, token)
+    # M5: admins MUST enrol 2FA. The flag forces the backoffice into the 2FA
+    # setup flow before any operation (mirrors password_change_needed).
     return {
         "token": token,
         "role": user.role.value,
         "password_change_needed": user.password_change_needed,
+        "two_factor_setup_required": user.role == UserRole.admin and not user.two_factor_secret,
     }
 
 
@@ -148,11 +155,15 @@ async def receipt_auth(
     invalid = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid receipt")
 
     if body.lookup:
-        # Zero-knowledge re-entry: look up by sha256(wb_pub); the server does NOT
-        # derive any key. The client unseals/decrypts everything itself.
+        # Zero-knowledge re-entry: the client sends its wb_pub (a public value, not
+        # the receipt). The server applies the peppered HMAC lookup itself (H2) and
+        # derives NO key — the client unseals/decrypts everything. A DB-only
+        # attacker cannot reproduce the lookup without the server pepper.
         if not ratelimit.allow(f"receipt:{body.lookup}", limit=5, window_seconds=60):
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts")
-        report = await db.scalar(select(Report).where(Report.receipt_hash == body.lookup))
+        report = await db.scalar(
+            select(Report).where(Report.receipt_hash == crypto.hash_receipt(body.lookup))
+        )
         if report is None:
             raise invalid
         report_key = ""  # server holds no key for this report
@@ -185,14 +196,16 @@ async def receipt_auth(
 
 @router.post("/password/forgot")
 async def password_forgot(
-    body: ForgotRequest, db: AsyncSession = Depends(get_session)
+    body: ForgotRequest,
+    db: AsyncSession = Depends(get_session),
+    tenant_id: int = Depends(resolve_tenant_id),
 ) -> dict:
     """Email a reset token if the account exists. Always returns ok (no enumeration)."""
     if not ratelimit.allow(f"forgot:{body.username}", limit=5, window_seconds=300):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts")
     user = await db.scalar(
         select(AppUser).where(
-            AppUser.tenant_id == DEFAULT_TENANT_ID,
+            AppUser.tenant_id == tenant_id,
             AppUser.username == body.username,
             AppUser.enabled.is_(True),
         )

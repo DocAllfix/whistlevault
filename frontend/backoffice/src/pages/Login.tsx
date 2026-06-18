@@ -28,7 +28,7 @@ export function Login() {
     setBusy(true);
     try {
       const res = await api.login(username, password, totp || undefined);
-      login(res.token, res.role, res.password_change_needed);
+      login(res.token, res.role, res.password_change_needed, res.two_factor_setup_required);
       navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Accesso non riuscito");
