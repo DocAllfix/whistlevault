@@ -134,14 +134,10 @@ export const PenLine = (p: P) => (
   </Svg>
 );
 
-/** Whistlevault brand mark: shield + vault/gem facets (original, owned). */
-export const VaultMark = (p: P) => (
-  <Svg {...p}>
-    <path d="M12 2.3 20 5.4V11c0 5-3.4 8.3-8 9.6C7.4 19.3 4 16 4 11V5.4Z" />
-    <path d="M6.7 8.7 9 4.7 12 8.7 15 4.7 17.3 8.7" />
-    <path d="M6.7 8.7 12 20" />
-    <path d="M17.3 8.7 12 20" />
-    <path d="M12 8.7V20" />
-    <path d="M9.2 14.2H14.8" />
-  </Svg>
+/** Whistlevault brand mark (real logo): colored on light surfaces, white on dark. */
+export const VaultMark = ({ size = 20, className }: P) => (
+  <span className={className} style={{ display: "inline-flex", alignItems: "center", verticalAlign: "middle" }}>
+    <img src="/logo.svg" width={size} height={size} alt="" className="block dark:hidden" />
+    <img src="/logo-light.svg" width={size} height={size} alt="" className="hidden dark:block" />
+  </span>
 );
