@@ -43,9 +43,9 @@ Registro delle modifiche di sicurezza applicate. Verifica: `pytest` 84/84 · `pi
 **Dopo:** `smtp_username/password/starttls` in Settings; `mailer.send` passa `username/password` e `start_tls` in produzione.
 **Perché:** i relay reali richiedono autenticazione su TLS; prima l'invio sarebbe fallito o non autenticato.
 
-## M5 — 2FA obbligatorio admin (`backend/app/auth/router.py`)
-**Dopo:** la risposta di login include `two_factor_setup_required = (role==admin and not two_factor_secret)`.
-**Perché:** un admin senza 2FA è un vettore ad alto privilegio (blast radius via escrow). Il backoffice deve forzare l'enrolment quando il flag è true (gate UI da completare, pattern `ForcePasswordChange`).
+## M5 — 2FA admin (opzionale di default, enforce per-tenant) (`backend/app/auth/router.py`, backoffice `Force2FA.tsx`)
+**Dopo:** la risposta di login include `two_factor_setup_required = enforce_2fa AND role==admin AND not two_factor_secret`, dove `enforce_2fa` è `tenant.settings.enforce_2fa` (**default false → 2FA opzionale ma consigliato**). Il backoffice ha il gate `Force2FA` (enrolment QR/secret → codice → codici di recupero) che scatta solo quando il flag è true.
+**Perché:** un admin senza 2FA è un vettore ad alto privilegio (blast radius via escrow). Per la produzione si attiva `enforce_2fa: true` nelle impostazioni del tenant; il 2FA è comunque sempre disponibile e raccomandato.
 
 ## M6 — Download non eseguibile (`backend/app/cases/router.py`)
 **Prima:** `media_type=content_type` (fidato dal client)

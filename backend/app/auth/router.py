@@ -19,7 +19,7 @@ from app.core.config import get_settings
 from app.core.tenancy import resolve_tenant_id
 from app.db.base import get_session, utcnow
 from app.db.enums import UserRole
-from app.db.models import AppUser, Report
+from app.db.models import AppUser, Report, Tenant
 from app.notifications import service as notifications
 
 RESET_TTL_MINUTES = 60
@@ -138,13 +138,18 @@ async def login(
     )
     token = store.create(session)
     _set_cookie(response, token)
-    # M5: admins MUST enrol 2FA. The flag forces the backoffice into the 2FA
-    # setup flow before any operation (mirrors password_change_needed).
+    # M5: 2FA is OPTIONAL by default (strongly recommended) and can be ENFORCED
+    # per-tenant via settings.enforce_2fa. When enforced, an admin without 2FA is
+    # forced into the setup flow before any operation (mirrors password change).
+    tenant = await db.get(Tenant, tenant_id)
+    enforce_2fa = bool((tenant.settings or {}).get("enforce_2fa")) if tenant else False
     return {
         "token": token,
         "role": user.role.value,
         "password_change_needed": user.password_change_needed,
-        "two_factor_setup_required": user.role == UserRole.admin and not user.two_factor_secret,
+        "two_factor_setup_required": (
+            enforce_2fa and user.role == UserRole.admin and not user.two_factor_secret
+        ),
     }
 
 
