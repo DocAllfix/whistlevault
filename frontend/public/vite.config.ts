@@ -11,8 +11,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // Use the SUMO build: it includes crypto_pwhash (Argon2id) used by the ZK
+      // receipt KDF. The plain build omits it. CommonJS module path bypasses the
+      // package's broken ESM "exports".
       "libsodium-wrappers": fileURLToPath(
-        new URL("./node_modules/libsodium-wrappers/dist/modules/libsodium-wrappers.js", import.meta.url),
+        new URL("./node_modules/libsodium-wrappers-sumo/dist/modules-sumo/libsodium-wrappers.js", import.meta.url),
       ),
     },
   },
