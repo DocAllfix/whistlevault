@@ -7,9 +7,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="theme-color" content="#0F172A" />
     <title>Backoffice — Gestione segnalazioni</title>
-    <script>
-      try { if (localStorage.getItem("wv-theme") === "dark") document.documentElement.classList.add("dark"); } catch (e) {}
-    </script>
+    <!-- No-flash dark theme: external (not inline) so it passes CSP script-src 'self'. -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>
