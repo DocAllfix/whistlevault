@@ -26,7 +26,9 @@
 		# M2: CSP for the SPA. script-src 'self' (Vite emits external modules);
 		# 'unsafe-inline' is needed only for inline STYLE attributes set at runtime
 		# (framer-motion / driver.js), not for scripts. API is same-origin.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+		# 'wasm-unsafe-eval' is required to instantiate the libsodium WebAssembly
+		# (ZK crypto); it permits WASM compilation only, NOT general JS eval.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 	}
 	# H3 / privacy: access logging stays OFF (Caddy default) so the reporter IP is
 	# never written to disk. If you must enable `log`, strip request>remote_ip.
@@ -57,7 +59,9 @@
 		# M2: CSP for the SPA. script-src 'self' (Vite emits external modules);
 		# 'unsafe-inline' is needed only for inline STYLE attributes set at runtime
 		# (framer-motion / driver.js), not for scripts. API is same-origin.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+		# 'wasm-unsafe-eval' is required to instantiate the libsodium WebAssembly
+		# (ZK crypto); it permits WASM compilation only, NOT general JS eval.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 	}
 	# H3 / privacy: access logging stays OFF (Caddy default) so the reporter IP is
 	# never written to disk. If you must enable `log`, strip request>remote_ip.

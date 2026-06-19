@@ -31,8 +31,8 @@ Registro delle modifiche di sicurezza applicate. Verifica: `pytest` 84/84 · `pi
 **Perché:** prevenire DoS applicativo e spam, senza tracciare l'IP (chiavi non-PII).
 
 ## M2 — CSP per la SPA (`deploy/Caddyfile`)
-**Dopo:** header `Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"` + HSTS preload, COOP, Permissions-Policy.
-**Perché:** contenere l'impatto di eventuali XSS. `script-src 'self'` (Vite emette moduli esterni); `'unsafe-inline'` solo per attributi `style` runtime.
+**Dopo:** header `Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"` + HSTS preload, COOP, Permissions-Policy.
+**Perché:** contenere l'impatto di eventuali XSS. `script-src 'self'` (Vite emette moduli esterni); `'wasm-unsafe-eval'` consente SOLO l'istanziazione del WebAssembly di libsodium (crypto ZK), non l'eval JS; `'unsafe-inline'` solo per attributi `style` runtime. (Bug trovato in collaudo live: senza `'wasm-unsafe-eval'` la CSP blocca il WASM e la crittografia non parte.)
 
 ## M3 — Content-Disposition anti-injection (`backend/app/cases/router.py`)
 **Prima:** `safe = name.replace('"', "")`
