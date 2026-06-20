@@ -35,7 +35,7 @@ CRED_FILE = os.environ.get("WB_DEMO_CRED_FILE", "/data/demo-credentials.txt")
 
 async def _provision_one(session, n: int) -> dict | None:
     backoffice_domain = f"wbapp{n}.{BASE}"
-    public_domain = f"wbapp{n}-seg.{BASE}"
+    public_domain = f"wbapp{n}-segnalazioni.{BASE}"
     existing = await session.scalar(
         select(Tenant).where(Tenant.backoffice_domain == backoffice_domain)
     )

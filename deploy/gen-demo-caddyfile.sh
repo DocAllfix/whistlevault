@@ -7,8 +7,8 @@
 #   e.g. deploy/gen-demo-caddyfile.sh wbapp.dedyn.io 10 > deploy/Caddyfile
 #
 # Each environment N:
-#   public (segnalazioni): wbappN-seg.<base>   -> /srv/public      (mic enabled for voice)
-#   backoffice (gestione): wbappN.<base>       -> /srv/backoffice
+#   public (segnalazioni): wbappN-segnalazioni.<base>  -> /srv/public  (mic on for voice)
+#   backoffice (gestione): wbappN.<base>               -> /srv/backoffice
 # Per-host automatic HTTPS via Let's Encrypt HTTP-01 (the deSEC wildcard A record
 # makes every host resolve to this server). Access logging stays OFF (Caddy
 # default) so reporter IPs are never written to disk.
@@ -21,7 +21,7 @@ pub=""
 back=""
 for n in $(seq 1 "$COUNT"); do
   if [ -z "$pub" ]; then sep=""; else sep=", "; fi
-  pub="${pub}${sep}wbapp${n}-seg.${BASE}"
+  pub="${pub}${sep}wbapp${n}-segnalazioni.${BASE}"
   back="${back}${sep}wbapp${n}.${BASE}"
 done
 

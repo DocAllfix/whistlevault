@@ -31,7 +31,7 @@ async def test_provision_creates_isolated_tenants(engine):
     t2 = next(t for t in tenants if t.label == "WBApp 2")
     # distinct host-based routing
     assert t1.backoffice_domain == "wbapp1.wbapp.dedyn.io"
-    assert t1.public_domain == "wbapp1-seg.wbapp.dedyn.io"
+    assert t1.public_domain == "wbapp1-segnalazioni.wbapp.dedyn.io"
     assert t2.backoffice_domain == "wbapp2.wbapp.dedyn.io"
     assert t1.id != t2.id
     # one admin per tenant, friction-free (no forced password change)
