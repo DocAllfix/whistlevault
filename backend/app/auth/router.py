@@ -92,7 +92,10 @@ async def login(
     db: AsyncSession = Depends(get_session),
     tenant_id: int = Depends(resolve_tenant_id),
 ) -> dict:
-    if not ratelimit.allow(f"login:{body.username}", limit=5, window_seconds=60):
+    # Rate-limit scoped per-tenant: different tenants may share a username (e.g.
+    # "admin"); a key on username alone would let one tenant's attempts throttle
+    # another's. Identical to single-tenant today, correct for multi-tenant.
+    if not ratelimit.allow(f"login:{tenant_id}:{body.username}", limit=5, window_seconds=60):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts"
         )
@@ -206,7 +209,7 @@ async def password_forgot(
     tenant_id: int = Depends(resolve_tenant_id),
 ) -> dict:
     """Email a reset token if the account exists. Always returns ok (no enumeration)."""
-    if not ratelimit.allow(f"forgot:{body.username}", limit=5, window_seconds=300):
+    if not ratelimit.allow(f"forgot:{tenant_id}:{body.username}", limit=5, window_seconds=300):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many attempts")
     user = await db.scalar(
         select(AppUser).where(

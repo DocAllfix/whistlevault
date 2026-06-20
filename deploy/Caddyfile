@@ -22,7 +22,9 @@
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"
 		Cross-Origin-Opener-Policy "same-origin"
-		Permissions-Policy "geolocation=(), camera=(), microphone=()"
+		# Public portal only: the voice-report field uses getUserMedia, so allow the
+		# microphone here (the browser still prompts the user). Backoffice keeps it off.
+		Permissions-Policy "geolocation=(), camera=(), microphone=(self)"
 		# M2: CSP for the SPA. script-src 'self' (Vite emits external modules);
 		# 'unsafe-inline' is needed only for inline STYLE attributes set at runtime
 		# (framer-motion / driver.js), not for scripts. API is same-origin.
