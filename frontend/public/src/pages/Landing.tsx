@@ -15,7 +15,7 @@ function ChannelPreview({ label }: { label: string }) {
           <span className="h-2.5 w-2.5 rounded-full bg-[#E8B339]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[#3BB273]" />
           <span className="ml-2 inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-xs text-muted-foreground ring-1 ring-border">
-            <Lock size={12} /> whistlevault.eu
+            <Lock size={12} /> canale sicuro
           </span>
         </div>
         <div className="space-y-4 p-6">

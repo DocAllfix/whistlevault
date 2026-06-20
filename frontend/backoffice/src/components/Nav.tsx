@@ -17,6 +17,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import { VaultMark } from "./icons";
 import { cn } from "../lib/utils";
+import { useBrand } from "../lib/useBrand";
 
 export const ROLE_LABEL: Record<string, string> = {
   admin: "Amministratore",
@@ -32,6 +33,7 @@ const active = "bg-wv-accent/10 text-wv-accent hover:bg-wv-accent/10 hover:text-
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { role, logout } = useAuth();
   const navigate = useNavigate();
+  const brand = useBrand();
   const isAdmin = role === "admin";
   const isCustodian = role === "custodian";
   const isAnalyst = role === "analyst";
@@ -71,7 +73,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
       >
         <div className="flex h-16 items-center gap-2 border-b border-border px-5">
           <VaultMark size={24} className="text-wv-accent" />
-          <span className="font-bold tracking-tight text-foreground">Whistlevault</span>
+          <span className="font-bold tracking-tight text-foreground">{brand}</span>
         </div>
 
         <nav data-tour="nav" className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">

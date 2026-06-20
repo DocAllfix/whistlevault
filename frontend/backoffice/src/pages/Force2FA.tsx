@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth";
 import { VaultMark } from "../components/icons";
+import { useBrand } from "../lib/useBrand";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -13,6 +14,7 @@ import { Notice } from "../components/ui/notice";
  * `two_factor_setup_required`; an admin cannot operate until TOTP is active.
  */
 export function Force2FA() {
+  const brand = useBrand();
   const { token, clearTwoFa } = useAuth();
   const [secret, setSecret] = useState("");
   const [uri, setUri] = useState("");
@@ -50,7 +52,7 @@ export function Force2FA() {
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-center gap-2">
           <VaultMark size={28} className="text-wv-accent" />
-          <span className="text-xl font-semibold tracking-tight text-foreground">Whistlevault</span>
+          <span className="text-xl font-semibold tracking-tight text-foreground">{brand}</span>
         </div>
         <Card className="p-6">
           {recovery ? (

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth";
 import { VaultMark } from "../components/icons";
+import { useBrand } from "../lib/useBrand";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -9,6 +10,7 @@ import { Label } from "../components/ui/label";
 import { Notice } from "../components/ui/notice";
 
 export function ForcePasswordChange() {
+  const brand = useBrand();
   const { token, clearPwdChange } = useAuth();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -39,7 +41,7 @@ export function ForcePasswordChange() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2">
           <VaultMark size={28} className="text-wv-accent" />
-          <span className="text-xl font-semibold tracking-tight text-foreground">Whistlevault</span>
+          <span className="text-xl font-semibold tracking-tight text-foreground">{brand}</span>
         </div>
         <Card className="p-6">
           <h1 className="mb-1 text-xl font-semibold text-foreground">Imposta una nuova password</h1>

@@ -42,7 +42,7 @@ export function Receipt() {
     if (!url) return;
     const a = document.createElement("a");
     a.href = url;
-    a.download = "whistlevault-ricevuta-qr.png";
+    a.download = "ricevuta-qr.png";
     a.click();
   }
 

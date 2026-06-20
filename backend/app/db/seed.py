@@ -41,16 +41,16 @@ async def _seed_tenant(session: AsyncSession) -> Tenant:
     return tenant
 
 
-async def _seed_admin(session: AsyncSession) -> AppUser:
+async def _seed_admin(session: AsyncSession, tenant_id: int = DEFAULT_TENANT_ID) -> AppUser:
     existing = await session.scalar(
         select(AppUser).where(
-            AppUser.tenant_id == DEFAULT_TENANT_ID, AppUser.username == "admin"
+            AppUser.tenant_id == tenant_id, AppUser.username == "admin"
         )
     )
     if existing:
         return existing
     admin = AppUser(
-        tenant_id=DEFAULT_TENANT_ID,
+        tenant_id=tenant_id,
         username="admin",
         role=UserRole.admin,
         name="Administrator",
@@ -66,9 +66,9 @@ async def _seed_admin(session: AsyncSession) -> AppUser:
     return admin
 
 
-async def _seed_statuses(session: AsyncSession) -> None:
+async def _seed_statuses(session: AsyncSession, tenant_id: int = DEFAULT_TENANT_ID) -> None:
     existing = await session.scalar(
-        select(SubmissionStatus.id).where(SubmissionStatus.tenant_id == DEFAULT_TENANT_ID)
+        select(SubmissionStatus.id).where(SubmissionStatus.tenant_id == tenant_id)
     )
     if existing:
         return
@@ -80,21 +80,23 @@ async def _seed_statuses(session: AsyncSession) -> None:
     for label, order in defaults:
         session.add(
             SubmissionStatus(
-                tenant_id=DEFAULT_TENANT_ID, label=label, order=order, system_defined=True
+                tenant_id=tenant_id, label=label, order=order, system_defined=True
             )
         )
 
 
-async def _seed_default_questionnaire(session: AsyncSession) -> Questionnaire:
+async def _seed_default_questionnaire(
+    session: AsyncSession, tenant_id: int = DEFAULT_TENANT_ID
+) -> Questionnaire:
     existing = await session.scalar(
         select(Questionnaire).where(
-            Questionnaire.tenant_id == DEFAULT_TENANT_ID, Questionnaire.name == "default"
+            Questionnaire.tenant_id == tenant_id, Questionnaire.name == "default"
         )
     )
     if existing:
         return existing
 
-    q = Questionnaire(tenant_id=DEFAULT_TENANT_ID, name="default")
+    q = Questionnaire(tenant_id=tenant_id, name="default")
 
     # --- Step 1: tipo e gravità (con scoring di rischio) ---
     s1 = Step(
@@ -223,15 +225,18 @@ async def _seed_default_questionnaire(session: AsyncSession) -> Questionnaire:
 
 
 async def _seed_default_context(
-    session: AsyncSession, questionnaire: Questionnaire, admin: AppUser
+    session: AsyncSession,
+    questionnaire: Questionnaire,
+    admin: AppUser,
+    tenant_id: int = DEFAULT_TENANT_ID,
 ) -> None:
     existing = await session.scalar(
-        select(Context.id).where(Context.tenant_id == DEFAULT_TENANT_ID)
+        select(Context.id).where(Context.tenant_id == tenant_id)
     )
     if existing:
         return
     context = Context(
-        tenant_id=DEFAULT_TENANT_ID,
+        tenant_id=tenant_id,
         name={"it": "Canale generale", "en": "General channel"},
         description={
             "it": "Canale interno di segnalazione.",

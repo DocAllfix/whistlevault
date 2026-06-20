@@ -28,7 +28,7 @@ export function Layout({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
-  const title = brand.name || "Whistlevault";
+  const title = brand.name || "Segnalazioni";
 
   return (
     <div className="flex min-h-dvh flex-col">

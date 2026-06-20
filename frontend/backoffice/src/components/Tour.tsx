@@ -20,7 +20,7 @@ function at(selector: string, title: string, description: string, side: Side = "
 function stepsFor(path: string): DriveStep[] {
   if (path === "/") {
     return [
-      intro("Benvenuto in Whistlevault", "Questa è l'area gestori. In pochi passi ti mostriamo le funzioni principali. Potrai rivedere la guida quando vuoi."),
+      intro("Benvenuto", "Questa è l'area gestori. In pochi passi ti mostriamo le funzioni principali. Potrai rivedere la guida quando vuoi."),
       at('[data-tour="nav"]', "Navigazione", "Da qui raggiungi Segnalazioni, Personalizzazione, Questionari, Utenti, Statistiche e Registro attività (le voci dipendono dal tuo ruolo)."),
       at('[data-tour="dash-tools"]', "Ricerca e filtri", "Cerca per testo o numero, ordina per data o scadenza e filtra per canale.", "bottom"),
       at('[data-tour="dash-list"]', "Le segnalazioni", "Raggruppate per data. Vedi stato, badge «Novità» e scadenza; clicca una riga per aprire il caso.", "top"),

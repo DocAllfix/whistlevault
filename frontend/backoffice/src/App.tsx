@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./auth";
 import { Sidebar } from "./components/Nav";
 import { Tour } from "./components/Tour";
 import { VaultMark } from "./components/icons";
+import { useBrand } from "./lib/useBrand";
 import { AuditLog } from "./pages/AuditLog";
 import { CaseDetail } from "./pages/CaseDetail";
 import { Custodian } from "./pages/Custodian";
@@ -28,6 +29,7 @@ function Protected({ children }: { children: JSX.Element }) {
 
 function Shell({ children }: { children: JSX.Element }) {
   const [open, setOpen] = useState(false);
+  const brand = useBrand();
   return (
     <div className="flex min-h-dvh bg-background">
       <Sidebar open={open} onClose={() => setOpen(false)} />
@@ -41,7 +43,7 @@ function Shell({ children }: { children: JSX.Element }) {
             <Menu size={20} />
           </button>
           <span className="flex items-center gap-2 font-bold text-foreground">
-            <VaultMark size={20} className="text-wv-accent" /> Whistlevault
+            <VaultMark size={20} className="text-wv-accent" /> {brand}
           </span>
         </header>
         <main className="min-w-0 flex-1 overflow-x-hidden">
