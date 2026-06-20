@@ -153,13 +153,14 @@ def main():
     print(f"    5xx: {sum(v for k, v in codes.items() if isinstance(k, int) and 500 <= k < 600)}")
 
     # --- B) BURST: BURST submit su UN tenant -> il rate-limit deve reggere
-    cid, fields, _ = tenants[1]
-    jobs = [lambda b, o, i=i: submit(1, cid, build_answers(fields, 1, 1000 + i), b, o)
-            for i in range(BURST)]
-    out, dt = run_jobs(jobs)
-    codes = Counter(st for _, st, _ in out)
-    print(f"\n[B] BURST su tenant 1: {BURST} simultanei in {dt:.2f}s")
-    print(f"    status: {dict(codes)}  (atteso: ~30x200 poi 429; 0x5xx)")
+    if BURST > 0:
+        cid, fields, _ = tenants[1]
+        jobs = [lambda b, o, i=i: submit(1, cid, build_answers(fields, 1, 1000 + i), b, o)
+                for i in range(BURST)]
+        out, dt = run_jobs(jobs)
+        codes = Counter(st for _, st, _ in out)
+        print(f"\n[B] BURST su tenant 1: {BURST} simultanei in {dt:.2f}s")
+        print(f"    status: {dict(codes)}  (atteso: ~30x200 poi 429; 0x5xx)")
 
     # --- C) LOGIN storm (Argon2) su tutti i tenant
     creds = parse_creds()
