@@ -16,7 +16,7 @@ import asyncio
 import os
 import secrets
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from app.auth import escrow
 from app.db.base import get_sessionmaker
@@ -89,6 +89,16 @@ def _format(rows: list[dict]) -> str:
 async def main() -> None:
     rows: list[dict] = []
     async with get_sessionmaker()() as session:
+        # The default tenant is seeded with an explicit id=1, which does NOT advance
+        # the Postgres id sequence; sync it so auto-id inserts don't collide.
+        if session.bind.dialect.name == "postgresql":
+            await session.execute(
+                text(
+                    "SELECT setval(pg_get_serial_sequence('tenant','id'), "
+                    "(SELECT COALESCE(MAX(id), 1) FROM tenant))"
+                )
+            )
+            await session.commit()
         for n in range(1, COUNT + 1):
             r = await _provision_one(session, n)
             if r:
