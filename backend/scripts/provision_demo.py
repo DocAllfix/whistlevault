@@ -47,6 +47,8 @@ async def _provision_one(session, n: int) -> dict | None:
         active=True,
         public_domain=public_domain,
         backoffice_domain=backoffice_domain,
+        # Public/backoffice brand name shown in the UI (per-tenant, neutral).
+        settings={"branding": {"name": f"WBApp Demo {n}"}},
     )
     session.add(tenant)
     await session.flush()

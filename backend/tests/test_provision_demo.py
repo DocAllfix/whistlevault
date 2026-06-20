@@ -41,6 +41,9 @@ async def test_provision_creates_isolated_tenants(engine):
     assert a1.password_change_needed is False and a2.password_change_needed is False
     # isolation at the crypto level: each tenant has its OWN escrow keypair
     assert t1.escrow_pub and t2.escrow_pub and t1.escrow_pub != t2.escrow_pub
+    # per-tenant brand name surfaced to the UI via /api/public
+    assert (t1.settings or {}).get("branding", {}).get("name") == "WBApp Demo 1"
+    assert (t2.settings or {}).get("branding", {}).get("name") == "WBApp Demo 2"
     # each tenant has its own default questionnaire
     q_tenants = {q.tenant_id for q in qs}
     assert {t1.id, t2.id} <= q_tenants
