@@ -21,8 +21,8 @@ pub=""
 back=""
 for n in $(seq 1 "$COUNT"); do
   if [ -z "$pub" ]; then sep=""; else sep=", "; fi
-  pub="${pub}${sep}wbapp${n}-segnalazioni.${BASE}"
-  back="${back}${sep}wbapp${n}.${BASE}"
+  pub="${pub}${sep}wbappdemo${n}-segnalazioni.${BASE}"
+  back="${back}${sep}wbappdemo${n}.${BASE}"
 done
 
 cat <<EOF

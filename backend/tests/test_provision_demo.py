@@ -27,12 +27,12 @@ async def test_provision_creates_isolated_tenants(engine):
         admins = (await s.scalars(select(AppUser).where(AppUser.username == "admin"))).all()
         qs = (await s.scalars(select(Questionnaire).where(Questionnaire.name == "default"))).all()
 
-    t1 = next(t for t in tenants if t.label == "WBApp 1")
-    t2 = next(t for t in tenants if t.label == "WBApp 2")
+    t1 = next(t for t in tenants if t.label == "WBApp Demo 1")
+    t2 = next(t for t in tenants if t.label == "WBApp Demo 2")
     # distinct host-based routing
-    assert t1.backoffice_domain == "wbapp1.wbapp.dedyn.io"
-    assert t1.public_domain == "wbapp1-segnalazioni.wbapp.dedyn.io"
-    assert t2.backoffice_domain == "wbapp2.wbapp.dedyn.io"
+    assert t1.backoffice_domain == "wbappdemo1.wbapp.dedyn.io"
+    assert t1.public_domain == "wbappdemo1-segnalazioni.wbapp.dedyn.io"
+    assert t2.backoffice_domain == "wbappdemo2.wbapp.dedyn.io"
     assert t1.id != t2.id
     # one admin per tenant, friction-free (no forced password change)
     a1 = next(a for a in admins if a.tenant_id == t1.id)

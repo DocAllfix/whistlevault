@@ -4,7 +4,7 @@
 # Privacy: access log OFF (default Caddy) -> nessun IP del segnalante su disco.
 
 # --- Portali pubblici di segnalazione (mic abilitato per il campo vocale) -----
-wbapp1-segnalazioni.wbapp.dedyn.io, wbapp2-segnalazioni.wbapp.dedyn.io, wbapp3-segnalazioni.wbapp.dedyn.io, wbapp4-segnalazioni.wbapp.dedyn.io, wbapp5-segnalazioni.wbapp.dedyn.io, wbapp6-segnalazioni.wbapp.dedyn.io, wbapp7-segnalazioni.wbapp.dedyn.io, wbapp8-segnalazioni.wbapp.dedyn.io, wbapp9-segnalazioni.wbapp.dedyn.io, wbapp10-segnalazioni.wbapp.dedyn.io {
+wbappdemo1-segnalazioni.wbapp.dedyn.io, wbappdemo2-segnalazioni.wbapp.dedyn.io, wbappdemo3-segnalazioni.wbapp.dedyn.io, wbappdemo4-segnalazioni.wbapp.dedyn.io, wbappdemo5-segnalazioni.wbapp.dedyn.io, wbappdemo6-segnalazioni.wbapp.dedyn.io, wbappdemo7-segnalazioni.wbapp.dedyn.io, wbappdemo8-segnalazioni.wbapp.dedyn.io, wbappdemo9-segnalazioni.wbapp.dedyn.io, wbappdemo10-segnalazioni.wbapp.dedyn.io {
 	encode gzip
 	root * /srv/public
 	handle /api/* {
@@ -26,7 +26,7 @@ wbapp1-segnalazioni.wbapp.dedyn.io, wbapp2-segnalazioni.wbapp.dedyn.io, wbapp3-s
 }
 
 # --- Backoffice gestori -------------------------------------------------------
-wbapp1.wbapp.dedyn.io, wbapp2.wbapp.dedyn.io, wbapp3.wbapp.dedyn.io, wbapp4.wbapp.dedyn.io, wbapp5.wbapp.dedyn.io, wbapp6.wbapp.dedyn.io, wbapp7.wbapp.dedyn.io, wbapp8.wbapp.dedyn.io, wbapp9.wbapp.dedyn.io, wbapp10.wbapp.dedyn.io {
+wbappdemo1.wbapp.dedyn.io, wbappdemo2.wbapp.dedyn.io, wbappdemo3.wbapp.dedyn.io, wbappdemo4.wbapp.dedyn.io, wbappdemo5.wbapp.dedyn.io, wbappdemo6.wbapp.dedyn.io, wbappdemo7.wbapp.dedyn.io, wbappdemo8.wbapp.dedyn.io, wbappdemo9.wbapp.dedyn.io, wbappdemo10.wbapp.dedyn.io {
 	encode gzip
 	root * /srv/backoffice
 	handle /api/* {
