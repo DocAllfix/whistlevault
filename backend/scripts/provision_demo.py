@@ -53,7 +53,8 @@ async def _provision_one(session, n: int) -> dict | None:
     session.add(tenant)
     await session.flush()
 
-    admin = await _seed_admin(session, tenant.id)
+    username = f"admin{n}"
+    admin = await _seed_admin(session, tenant.id, username=username)
     await _seed_statuses(session, tenant.id)
     questionnaire = await _seed_default_questionnaire(session, tenant.id)
     await _seed_default_context(session, questionnaire, admin, tenant.id)
@@ -67,7 +68,7 @@ async def _provision_one(session, n: int) -> dict | None:
         "label": tenant.label,
         "gestione": f"https://{backoffice_domain}",
         "segnalazioni": f"https://{public_domain}",
-        "username": "admin",
+        "username": username,
         "password": password,
         "recovery": recovery,
     }

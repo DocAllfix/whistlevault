@@ -41,17 +41,19 @@ async def _seed_tenant(session: AsyncSession) -> Tenant:
     return tenant
 
 
-async def _seed_admin(session: AsyncSession, tenant_id: int = DEFAULT_TENANT_ID) -> AppUser:
+async def _seed_admin(
+    session: AsyncSession, tenant_id: int = DEFAULT_TENANT_ID, username: str = "admin"
+) -> AppUser:
     existing = await session.scalar(
         select(AppUser).where(
-            AppUser.tenant_id == tenant_id, AppUser.username == "admin"
+            AppUser.tenant_id == tenant_id, AppUser.username == username
         )
     )
     if existing:
         return existing
     admin = AppUser(
         tenant_id=tenant_id,
-        username="admin",
+        username=username,
         role=UserRole.admin,
         name="Administrator",
         language="it",

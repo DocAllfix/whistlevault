@@ -24,7 +24,7 @@ async def test_provision_creates_isolated_tenants(engine):
 
     async with maker() as s:
         tenants = (await s.scalars(select(Tenant))).all()
-        admins = (await s.scalars(select(AppUser).where(AppUser.username == "admin"))).all()
+        admins = (await s.scalars(select(AppUser))).all()
         qs = (await s.scalars(select(Questionnaire).where(Questionnaire.name == "default"))).all()
 
     t1 = next(t for t in tenants if t.label == "WBApp Demo 1")
@@ -38,6 +38,7 @@ async def test_provision_creates_isolated_tenants(engine):
     a1 = next(a for a in admins if a.tenant_id == t1.id)
     a2 = next(a for a in admins if a.tenant_id == t2.id)
     assert a1.id != a2.id
+    assert a1.username == "admin1" and a2.username == "admin2"
     assert a1.password_change_needed is False and a2.password_change_needed is False
     # isolation at the crypto level: each tenant has its OWN escrow keypair
     assert t1.escrow_pub and t2.escrow_pub and t1.escrow_pub != t2.escrow_pub
