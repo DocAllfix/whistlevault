@@ -56,6 +56,23 @@ async def test_2fa_enrollment_login_and_recovery(client):
 
 
 @pytest.mark.asyncio
+async def test_2fa_enforced_by_default_and_toggleable(client):
+    """WI-3: 2FA is required by default for handlers; tenant can switch it off."""
+    ac, data = client
+    r = await ac.post("/api/auth/login", json={"username": "admin", "password": data["admin_password"]})
+    assert r.status_code == 200
+    assert r.json()["two_factor_setup_required"] is True  # default-on, admin has no secret yet
+    tok = r.json()["token"]
+
+    # Turn enforcement OFF for the tenant.
+    await ac.put(
+        "/api/admin/settings", json={"settings": {"enforce_2fa": False}}, headers=_auth(tok)
+    )
+    r2 = await ac.post("/api/auth/login", json={"username": "admin", "password": data["admin_password"]})
+    assert r2.json()["two_factor_setup_required"] is False
+
+
+@pytest.mark.asyncio
 async def test_2fa_disable(client):
     ac, data = client
     tok = await _login(ac, "admin", data["admin_password"])

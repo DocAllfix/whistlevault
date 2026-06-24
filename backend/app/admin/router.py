@@ -111,9 +111,30 @@ async def create_status(body: schemas.StatusCreate, s: Session = Depends(_admin)
     return await service.create_status(db, s, body)
 
 
+@router.patch("/statuses/{status_id}")
+async def update_status(status_id: uuid.UUID, body: schemas.StatusUpdate, s: Session = Depends(_admin), db: AsyncSession = Depends(get_session)):
+    return await service.update_status(db, s, status_id, body)
+
+
 @router.delete("/statuses/{status_id}")
 async def delete_status(status_id: uuid.UUID, s: Session = Depends(_admin), db: AsyncSession = Depends(get_session)):
     await service.delete_status(db, s, status_id)
+    return {"status": "ok"}
+
+
+@router.post("/statuses/{status_id}/substatuses")
+async def create_substatus(status_id: uuid.UUID, body: schemas.SubStatusCreate, s: Session = Depends(_admin), db: AsyncSession = Depends(get_session)):
+    return await service.create_substatus(db, s, status_id, body)
+
+
+@router.patch("/substatuses/{substatus_id}")
+async def update_substatus(substatus_id: uuid.UUID, body: schemas.SubStatusUpdate, s: Session = Depends(_admin), db: AsyncSession = Depends(get_session)):
+    return await service.update_substatus(db, s, substatus_id, body)
+
+
+@router.delete("/substatuses/{substatus_id}")
+async def delete_substatus(substatus_id: uuid.UUID, s: Session = Depends(_admin), db: AsyncSession = Depends(get_session)):
+    await service.delete_substatus(db, s, substatus_id)
     return {"status": "ok"}
 
 
