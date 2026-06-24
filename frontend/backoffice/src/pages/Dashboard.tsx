@@ -136,8 +136,12 @@ export function Dashboard() {
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g}</h2>
               <div className="overflow-hidden rounded-lg border border-border bg-card">
                 {rows.map((c, i) => {
-                  const overdue =
-                    c.expiration_date && differenceInCalendarDays(new Date(c.expiration_date), new Date()) < 0;
+                  const daysLeft = c.expiration_date
+                    ? differenceInCalendarDays(new Date(c.expiration_date), new Date())
+                    : null;
+                  const overdue = daysLeft !== null && daysLeft < 0;
+                  const inWindow =
+                    daysLeft !== null && !overdue && c.reminder_days > 0 && daysLeft <= c.reminder_days;
                   return (
                     <button
                       key={c.report_id}
@@ -154,6 +158,7 @@ export function Dashboard() {
                             {c.label || `Segnalazione n. ${c.progressive}`}
                           </span>
                           {c.new && <Badge variant="success">Novità</Badge>}
+                          {inWindow && <Badge variant="warning">In scadenza</Badge>}
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
                           <span>#{c.progressive}</span>

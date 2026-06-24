@@ -23,6 +23,7 @@ from app.db.models import (
     Questionnaire,
     Step,
     SubmissionStatus,
+    SubmissionSubStatus,
     Tenant,
 )
 
@@ -327,35 +328,110 @@ async def delete_questionnaire(db: AsyncSession, session: Session, qid: uuid.UUI
     await db.commit()
 
 
-# --- Statuses ---------------------------------------------------------------
+# --- Statuses & sub-statuses (configurable workflow) ------------------------
+def _serialize_status(s: SubmissionStatus) -> dict:
+    return {
+        "id": str(s.id),
+        "label": s.label,
+        "order": s.order,
+        "system_defined": s.system_defined,
+        "substatuses": [
+            {"id": str(ss.id), "label": ss.label, "order": ss.order}
+            for ss in sorted(s.substatuses, key=lambda x: x.order)
+        ],
+    }
+
+
+async def _get_status(db: AsyncSession, session: Session, status_id: uuid.UUID) -> SubmissionStatus:
+    status = await db.get(SubmissionStatus, status_id)
+    if status is None or status.tenant_id != session.tenant_id:
+        raise CaseNotFound("Status not found")
+    return status
+
+
+async def _get_substatus(
+    db: AsyncSession, session: Session, substatus_id: uuid.UUID
+) -> SubmissionSubStatus:
+    sub = await db.get(SubmissionSubStatus, substatus_id)
+    if sub is not None:
+        parent = await db.get(SubmissionStatus, sub.status_id)
+        if parent is not None and parent.tenant_id == session.tenant_id:
+            return sub
+    raise CaseNotFound("Sub-status not found")
+
+
 async def list_statuses(db: AsyncSession, session: Session) -> list[dict]:
     rows = (
         await db.scalars(
             select(SubmissionStatus)
             .where(SubmissionStatus.tenant_id == session.tenant_id)
+            .options(selectinload(SubmissionStatus.substatuses))
             .order_by(SubmissionStatus.order)
         )
     ).all()
-    return [
-        {"id": str(s.id), "label": s.label, "order": s.order, "system_defined": s.system_defined}
-        for s in rows
-    ]
+    return [_serialize_status(s) for s in rows]
 
 
 async def create_status(db: AsyncSession, session: Session, body: schemas.StatusCreate) -> dict:
     status = SubmissionStatus(tenant_id=session.tenant_id, label=body.label, order=body.order)
     db.add(status)
+    await audit.log(db, tenant_id=session.tenant_id, type="status_create", user_id=session.user_id)
     await db.commit()
-    return {"id": str(status.id), "label": status.label, "order": status.order}
+    return {"id": str(status.id), "label": status.label, "order": status.order, "substatuses": []}
+
+
+async def update_status(
+    db: AsyncSession, session: Session, status_id: uuid.UUID, body: schemas.StatusUpdate
+) -> dict:
+    status = await _get_status(db, session, status_id)
+    if body.label is not None:
+        status.label = body.label
+    if body.order is not None:
+        status.order = body.order
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="status_update", user_id=session.user_id, object_id=status.id
+    )
+    await db.commit()
+    await db.refresh(status, ["substatuses"])
+    return _serialize_status(status)
 
 
 async def delete_status(db: AsyncSession, session: Session, status_id: uuid.UUID) -> None:
-    status = await db.get(SubmissionStatus, status_id)
-    if status is None or status.tenant_id != session.tenant_id:
-        raise CaseNotFound("Status not found")
+    status = await _get_status(db, session, status_id)
     if status.system_defined:
         raise CaseError("Cannot delete a system-defined status")
-    await db.delete(status)
+    await db.delete(status)  # cascades to its sub-statuses
+    await db.commit()
+
+
+async def create_substatus(
+    db: AsyncSession, session: Session, status_id: uuid.UUID, body: schemas.SubStatusCreate
+) -> dict:
+    await _get_status(db, session, status_id)  # tenant ownership check
+    sub = SubmissionSubStatus(status_id=status_id, label=body.label, order=body.order)
+    db.add(sub)
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="status_update", user_id=session.user_id, object_id=status_id
+    )
+    await db.commit()
+    return {"id": str(sub.id), "label": sub.label, "order": sub.order}
+
+
+async def update_substatus(
+    db: AsyncSession, session: Session, substatus_id: uuid.UUID, body: schemas.SubStatusUpdate
+) -> dict:
+    sub = await _get_substatus(db, session, substatus_id)
+    if body.label is not None:
+        sub.label = body.label
+    if body.order is not None:
+        sub.order = body.order
+    await db.commit()
+    return {"id": str(sub.id), "label": sub.label, "order": sub.order}
+
+
+async def delete_substatus(db: AsyncSession, session: Session, substatus_id: uuid.UUID) -> None:
+    sub = await _get_substatus(db, session, substatus_id)
+    await db.delete(sub)
     await db.commit()
 
 

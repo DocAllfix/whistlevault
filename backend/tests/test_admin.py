@@ -2,7 +2,7 @@
 
 import pytest
 
-from tests.test_cases import _login, _make_user
+from tests.test_cases import _answers, _login, _make_user
 from app.db.enums import UserRole
 
 
@@ -125,6 +125,68 @@ async def test_admin_statuses_and_settings(client, engine):
     )
     s = (await ac.get("/api/admin/settings", headers=_auth(token))).json()
     assert s["primary_color"] == "#0a3d62"
+
+
+@pytest.mark.asyncio
+async def test_status_and_substatus_crud(client, engine):
+    """WI-1: configurable workflow — status + sub-status CRUD, assignment to a case."""
+    ac, data = client
+    token = await _login(ac, "admin", data["admin_password"])
+
+    # Create a custom status, then edit its label/order.
+    created = await ac.post(
+        "/api/admin/statuses",
+        json={"label": {"it": "In valutazione", "en": "Under review"}, "order": 5},
+        headers=_auth(token),
+    )
+    assert created.status_code == 200
+    status_id = created.json()["id"]
+    assert created.json()["substatuses"] == []
+
+    upd = await ac.patch(
+        f"/api/admin/statuses/{status_id}",
+        json={"label": {"it": "In esame", "en": "Reviewing"}},
+        headers=_auth(token),
+    )
+    assert upd.status_code == 200 and upd.json()["label"]["it"] == "In esame"
+
+    # Add + edit a sub-status; list_statuses must include it.
+    sub = await ac.post(
+        f"/api/admin/statuses/{status_id}/substatuses",
+        json={"label": {"it": "Archiviata", "en": "Archived"}, "order": 0},
+        headers=_auth(token),
+    )
+    assert sub.status_code == 200
+    sub_id = sub.json()["id"]
+
+    statuses = (await ac.get("/api/admin/statuses", headers=_auth(token))).json()
+    target = next(s for s in statuses if s["id"] == status_id)
+    assert len(target["substatuses"]) == 1 and target["substatuses"][0]["label"]["it"] == "Archiviata"
+
+    await ac.patch(f"/api/admin/substatuses/{sub_id}", json={"label": {"it": "Spam"}}, headers=_auth(token))
+
+    # Deleting a system-defined status is refused; a custom one is allowed.
+    sys_id = next(s["id"] for s in statuses if s["system_defined"])
+    assert (await ac.delete(f"/api/admin/statuses/{sys_id}", headers=_auth(token))).status_code == 400
+
+    # Assign status + sub-status to a real case and verify it persists in the detail.
+    report_id = (await ac.post("/api/report", json={"answers": await _answers(engine)})).json()["report_id"]
+    r = await ac.post(
+        f"/api/cases/{report_id}/status",
+        json={"status_id": status_id, "substatus_id": sub_id},
+        headers=_auth(token),
+    )
+    assert r.status_code == 200
+    detail = (await ac.get(f"/api/cases/{report_id}", headers=_auth(token))).json()
+    assert detail["status_id"] == status_id and detail["substatus_id"] == sub_id
+
+    # Tenant isolation: a substatus id that doesn't exist → 404.
+    import uuid as _uuid
+
+    miss = await ac.patch(
+        f"/api/admin/substatuses/{_uuid.uuid4()}", json={"label": {"it": "x"}}, headers=_auth(token)
+    )
+    assert miss.status_code == 404
 
 
 @pytest.mark.asyncio

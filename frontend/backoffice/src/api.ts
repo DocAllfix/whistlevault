@@ -23,6 +23,20 @@ function j(body: unknown, method = "POST"): RequestInit {
   return { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
 }
 
+export interface SubStatus {
+  id: string;
+  label: Record<string, string>;
+  order: number;
+}
+
+export interface Status {
+  id: string;
+  label: Record<string, string>;
+  order: number;
+  system_defined: boolean;
+  substatuses: SubStatus[];
+}
+
 export interface CaseSummary {
   report_id: string;
   progressive: number;
@@ -34,17 +48,21 @@ export interface CaseSummary {
   created_at: string;
   updated_at: string;
   expiration_date: string | null;
+  reminder_days: number;
 }
 
 export interface CaseDetail {
   report_id: string;
   progressive: number;
   status_id: string | null;
+  substatus_id: string | null;
   important: boolean;
   score: number;
   label: string;
   created_at: string;
   expiration_date: string | null;
+  reminder_date: string | null;
+  reminder_days: number;
   identity_available: boolean;
   identity_granted: boolean;
   identity: Record<string, unknown> | null;
@@ -59,6 +77,7 @@ export const api = {
     req<{
       token: string;
       role: string;
+      permissions: Record<string, boolean>;
       password_change_needed: boolean;
       two_factor_setup_required: boolean;
     }>("/auth/login", j({ username, password, totp_code })),
@@ -78,10 +97,13 @@ export const api = {
   cases: (t: string, statusId?: string) =>
     req<CaseSummary[]>(`/cases${statusId ? `?status_id=${statusId}` : ""}`, {}, t),
   caseDetail: (t: string, id: string) => req<CaseDetail>(`/cases/${id}`, {}, t),
+  deleteCase: (t: string, id: string) => req(`/cases/${id}`, { method: "DELETE" }, t),
   addComment: (t: string, id: string, content: string, visibility: string) =>
     req(`/cases/${id}/comments`, j({ content, visibility }), t),
-  changeStatus: (t: string, id: string, status_id: string) =>
-    req(`/cases/${id}/status`, j({ status_id }), t),
+  changeStatus: (t: string, id: string, status_id: string, substatus_id?: string | null) =>
+    req(`/cases/${id}/status`, j({ status_id, substatus_id: substatus_id ?? null }), t),
+  postpone: (t: string, id: string, days: number) =>
+    req(`/cases/${id}/postpone`, j({ days }), t),
   requestIdentity: (t: string, id: string, motivation: string) =>
     req<{ identity_request_id: string }>(`/cases/${id}/identity-requests`, j({ motivation }), t),
   fileUrl: (id: string, fileId: string) => `${BASE}/cases/${id}/files/${fileId}`,
@@ -95,9 +117,18 @@ export const api = {
   revokeAccess: (t: string, id: string, user_id: string) =>
     req(`/cases/${id}/revoke`, j({ user_id }), t),
 
-  // Statuses (for the dropdown)
-  statuses: (t: string) =>
-    req<{ id: string; label: Record<string, string>; order: number }[]>("/admin/statuses", {}, t),
+  // Statuses + sub-statuses (dropdown + workflow editor)
+  statuses: (t: string) => req<Status[]>("/admin/statuses", {}, t),
+  createStatus: (t: string, label: Record<string, string>, order = 0) =>
+    req<Status>("/admin/statuses", j({ label, order }), t),
+  updateStatus: (t: string, id: string, body: { label?: Record<string, string>; order?: number }) =>
+    req<Status>(`/admin/statuses/${id}`, j(body, "PATCH"), t),
+  deleteStatus: (t: string, id: string) => req(`/admin/statuses/${id}`, { method: "DELETE" }, t),
+  createSubstatus: (t: string, statusId: string, label: Record<string, string>, order = 0) =>
+    req<SubStatus>(`/admin/statuses/${statusId}/substatuses`, j({ label, order }), t),
+  updateSubstatus: (t: string, id: string, body: { label?: Record<string, string>; order?: number }) =>
+    req<SubStatus>(`/admin/substatuses/${id}`, j(body, "PATCH"), t),
+  deleteSubstatus: (t: string, id: string) => req(`/admin/substatuses/${id}`, { method: "DELETE" }, t),
 
   // Custodian
   pendingIdentity: (t: string) =>

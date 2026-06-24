@@ -1,9 +1,9 @@
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { AlertTriangle, Download, FileText } from "lucide-react";
+import { AlertTriangle, Download, FileText, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { api, CaseDetail as Detail } from "../api";
+import { useNavigate, useParams } from "react-router-dom";
+import { api, CaseDetail as Detail, Status } from "../api";
 import { useAuth } from "../auth";
 import { ROLE_LABEL } from "../components/Nav";
 import { Badge } from "../components/ui/badge";
@@ -21,10 +21,11 @@ const VIS_LABEL: Record<string, string> = {
 };
 
 export function CaseDetail() {
-  const { token, role } = useAuth();
+  const { token, role, can } = useAuth();
   const { id = "" } = useParams();
+  const navigate = useNavigate();
   const [detail, setDetail] = useState<Detail | null>(null);
-  const [statuses, setStatuses] = useState<{ id: string; label: string }[]>([]);
+  const [statuses, setStatuses] = useState<Status[]>([]);
   const [comment, setComment] = useState("");
   const [visibility, setVisibility] = useState("public");
   const [error, setError] = useState("");
@@ -37,7 +38,7 @@ export function CaseDetail() {
     if (!token) return;
     const [d, st] = await Promise.all([api.caseDetail(token, id), api.statuses(token)]);
     setDetail(d);
-    setStatuses(st.map((s) => ({ id: s.id, label: s.label.it ?? s.label.en ?? "" })));
+    setStatuses(st);
     if (role === "admin") {
       try {
         setUsers(await api.users(token));
@@ -89,19 +90,69 @@ export function CaseDetail() {
             </Badge>
           )}
         </div>
-        <Button data-tour="case-export" variant="secondary" size="sm" disabled={busy} onClick={() => blobDownload(api.exportUrl(id), `segnalazione-${detail.progressive}.zip`)}>
-          <Download size={16} /> Esporta caso (ZIP)
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button data-tour="case-export" variant="secondary" size="sm" disabled={busy} onClick={() => blobDownload(api.exportUrl(id), `segnalazione-${detail.progressive}.zip`)}>
+            <Download size={16} /> Esporta caso (ZIP)
+          </Button>
+          {can("can_delete_submission") && (
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={busy}
+              onClick={async () => {
+                if (
+                  !confirm(
+                    "Eliminare definitivamente questa segnalazione, con messaggi e allegati? L'operazione non è reversibile.",
+                  )
+                )
+                  return;
+                setBusy(true);
+                setError("");
+                try {
+                  await api.deleteCase(token!, id);
+                  navigate("/"); // leave the page; do NOT reload the deleted case
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Errore");
+                  setBusy(false);
+                }
+              }}
+            >
+              <Trash2 size={16} /> Elimina
+            </Button>
+          )}
+        </div>
       </div>
 
       <div data-tour="case-status" className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="st">Stato</Label>
-          <select id="st" className={selectClass} value={detail.status_id ?? ""} onChange={(e) => act(() => api.changeStatus(token!, id, e.target.value))}>
-            {statuses.map((s) => (
-              <option key={s.id} value={s.id}>{s.label}</option>
-            ))}
-          </select>
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="st">Stato</Label>
+            <select id="st" className={selectClass} value={detail.status_id ?? ""} onChange={(e) => act(() => api.changeStatus(token!, id, e.target.value))}>
+              {statuses.map((s) => (
+                <option key={s.id} value={s.id}>{s.label.it ?? s.label.en ?? ""}</option>
+              ))}
+            </select>
+          </div>
+          {(() => {
+            const cur = statuses.find((s) => s.id === detail.status_id);
+            if (!cur || cur.substatuses.length === 0) return null;
+            return (
+              <div>
+                <Label htmlFor="sub">Sotto-stato</Label>
+                <select
+                  id="sub"
+                  className={selectClass}
+                  value={detail.substatus_id ?? ""}
+                  onChange={(e) => act(() => api.changeStatus(token!, id, detail.status_id!, e.target.value || null))}
+                >
+                  <option value="">—</option>
+                  {cur.substatuses.map((ss) => (
+                    <option key={ss.id} value={ss.id}>{ss.label.it ?? ss.label.en ?? ""}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          })()}
         </div>
         <div>
           <Label>Identità segnalante</Label>
@@ -125,6 +176,55 @@ export function CaseDetail() {
           </div>
         </div>
       </div>
+
+      {(() => {
+        const exp = detail.expiration_date ? new Date(detail.expiration_date) : null;
+        const daysLeft = exp ? Math.ceil((exp.getTime() - Date.now()) / 86_400_000) : null;
+        const overdue = daysLeft !== null && daysLeft < 0;
+        const inWindow =
+          daysLeft !== null && !overdue && detail.reminder_days > 0 && daysLeft <= detail.reminder_days;
+        return (
+          <section>
+            <h2 className="mb-3 text-sm font-semibold text-foreground">Scadenza e promemoria</h2>
+            <Card className="space-y-3 p-5">
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <span className="text-muted-foreground">Scadenza conservazione:</span>
+                <span className="font-medium text-foreground">
+                  {exp ? format(exp, "d MMM yyyy", { locale: it }) : "—"}
+                </span>
+                {overdue ? (
+                  <Badge variant="danger">Scaduta</Badge>
+                ) : inWindow ? (
+                  <Badge variant="warning">In scadenza</Badge>
+                ) : daysLeft !== null ? (
+                  <Badge variant="outline">tra {daysLeft} giorni</Badge>
+                ) : null}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {detail.reminder_date
+                  ? `Promemoria inviato ai gestori il ${format(new Date(detail.reminder_date), "d MMM yyyy", { locale: it })}.`
+                  : detail.reminder_days > 0
+                    ? `Promemoria automatico ai gestori ${detail.reminder_days} giorni prima della scadenza.`
+                    : "Nessun promemoria automatico configurato per questo canale."}
+              </p>
+              {can("can_postpone_expiration") && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => {
+                    const d = prompt("Proroga la scadenza di quanti giorni?", "30");
+                    const n = d ? parseInt(d, 10) : NaN;
+                    if (n > 0) act(() => api.postpone(token!, id, n));
+                  }}
+                >
+                  Proroga scadenza
+                </Button>
+              )}
+            </Card>
+          </section>
+        );
+      })()}
 
       <section data-tour="case-content">
         <h2 className="mb-3 text-sm font-semibold text-foreground">Contenuto della segnalazione</h2>
