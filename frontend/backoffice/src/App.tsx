@@ -18,6 +18,7 @@ import { Statistics } from "./pages/Statistics";
 import { Organization } from "./pages/admin/Organization";
 import { Questionnaires } from "./pages/admin/Questionnaires";
 import { Users } from "./pages/admin/Users";
+import { Workflow } from "./pages/admin/Workflow";
 
 function Protected({ children }: { children: JSX.Element }) {
   const { token, pwdChangeNeeded, twoFaSetupNeeded } = useAuth();
@@ -69,6 +70,7 @@ export function App() {
           <Route path="/admin/users" element={<Protected><Shell><Users /></Shell></Protected>} />
           <Route path="/admin/organization" element={<Protected><Shell><Organization /></Shell></Protected>} />
           <Route path="/admin/questionnaires" element={<Protected><Shell><Questionnaires /></Shell></Protected>} />
+          <Route path="/admin/workflow" element={<Protected><Shell><Workflow /></Shell></Protected>} />
           <Route path="/admin/audit" element={<Protected><Shell><AuditLog /></Shell></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -18,7 +18,6 @@ from app.core import ratelimit
 from app.core.config import get_settings
 from app.core.tenancy import resolve_tenant_id
 from app.db.base import get_session, utcnow
-from app.db.enums import UserRole
 from app.db.models import AppUser, Report, Tenant
 from app.notifications import service as notifications
 
@@ -141,18 +140,18 @@ async def login(
     )
     token = store.create(session)
     _set_cookie(response, token)
-    # M5: 2FA is OPTIONAL by default (strongly recommended) and can be ENFORCED
-    # per-tenant via settings.enforce_2fa. When enforced, an admin without 2FA is
-    # forced into the setup flow before any operation (mirrors password change).
+    # 2FA is part of the offering ("accessi per ruolo + doppia autenticazione"):
+    # ENFORCED by default for every handler role, and can be turned OFF per-tenant
+    # via settings.enforce_2fa = false. A handler without 2FA is forced into the
+    # setup flow before any operation (mirrors password change).
     tenant = await db.get(Tenant, tenant_id)
-    enforce_2fa = bool((tenant.settings or {}).get("enforce_2fa")) if tenant else False
+    enforce_2fa = bool((tenant.settings or {}).get("enforce_2fa", True)) if tenant else True
     return {
         "token": token,
         "role": user.role.value,
+        "permissions": session.permissions,
         "password_change_needed": user.password_change_needed,
-        "two_factor_setup_required": (
-            enforce_2fa and user.role == UserRole.admin and not user.two_factor_secret
-        ),
+        "two_factor_setup_required": enforce_2fa and not user.two_factor_secret,
     }
 
 

@@ -166,6 +166,24 @@ async def test_identity_disclosure_is_crypto_enforced(client, engine):
 
 
 @pytest.mark.asyncio
+async def test_delete_report_requires_permission(client, engine):
+    """WI-4: on-demand deletion is gated by can_delete_submission and is irreversible."""
+    ac, data = client
+    answers = await _answers(engine)
+    report_id = (await ac.post("/api/report", json={"answers": answers})).json()["report_id"]
+
+    # A recipient without the permission is refused.
+    await _make_user(engine, "recd", UserRole.recipient, "RecdPass1!")
+    rtok = await _login(ac, "recd", "RecdPass1!")
+    assert (await ac.delete(f"/api/cases/{report_id}", headers=_auth(rtok))).status_code == 403
+
+    # The seeded admin holds can_delete_submission → deletion succeeds and the case is gone.
+    atok = await _login(ac, "admin", data["admin_password"])
+    assert (await ac.delete(f"/api/cases/{report_id}", headers=_auth(atok))).status_code == 200
+    assert (await ac.get(f"/api/cases/{report_id}", headers=_auth(atok))).status_code == 404
+
+
+@pytest.mark.asyncio
 async def test_audit_log_records_handler_actions(client, engine):
     ac, data = client
     answers = await _answers(engine)

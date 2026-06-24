@@ -4,6 +4,7 @@ import {
   HelpCircle,
   History,
   Inbox,
+  ListChecks,
   LogOut,
   Moon,
   Palette,
@@ -93,6 +94,11 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           {isAdmin && (
             <NavLink to="/admin/questionnaires" className={link} onClick={close}>
               <ClipboardList size={18} /> Questionari
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink to="/admin/workflow" className={link} onClick={close}>
+              <ListChecks size={18} /> Workflow
             </NavLink>
           )}
           {(isAdmin || isAnalyst) && (

@@ -21,6 +21,7 @@ from app.db.enums import AuthorKind, CommentVisibility, IARStatus, UserRole
 from app.db.models import (
     AppUser,
     Comment,
+    Context,
     IdentityAccessRequest,
     IdentityAccessRequestCustodian,
     RecipientReport,
@@ -79,8 +80,9 @@ async def list_cases(
     context_id: uuid.UUID | None = None,
 ) -> list[dict]:
     stmt = (
-        select(Report, RecipientReport.new)
+        select(Report, RecipientReport.new, Context.tip_reminder_days)
         .join(RecipientReport, RecipientReport.report_id == Report.id)
+        .join(Context, Context.id == Report.context_id)
         .where(
             RecipientReport.recipient_id == _uid(session),
             Report.tenant_id == session.tenant_id,
@@ -106,8 +108,9 @@ async def list_cases(
             "created_at": r.created_at.isoformat(),
             "updated_at": r.updated_at.isoformat(),
             "expiration_date": r.expiration_date.isoformat() if r.expiration_date else None,
+            "reminder_days": reminder_days or 0,
         }
-        for r, is_new in rows
+        for r, is_new, reminder_days in rows
     ]
 
 
@@ -217,6 +220,10 @@ async def get_detail(db: AsyncSession, session: Session, report_id: uuid.UUID) -
             if c["id"] in comment_masks:
                 c["content"] = _mask_text(c["content"], comment_masks[c["id"]])
 
+    reminder_days = await db.scalar(
+        select(Context.tip_reminder_days).where(Context.id == report.context_id)
+    )
+
     await audit.log(
         db, tenant_id=session.tenant_id, type="report_access", user_id=session.user_id, object_id=report.id
     )
@@ -232,6 +239,8 @@ async def get_detail(db: AsyncSession, session: Session, report_id: uuid.UUID) -
         "label": report.label,
         "created_at": report.created_at.isoformat(),
         "expiration_date": report.expiration_date.isoformat() if report.expiration_date else None,
+        "reminder_date": report.reminder_date.isoformat() if report.reminder_date else None,
+        "reminder_days": reminder_days or 0,
         "identity_available": report.enable_whistleblower_identity,
         "identity_granted": identity is not None,
         "identity": identity,
@@ -330,6 +339,29 @@ async def postpone(db: AsyncSession, session: Session, report_id: uuid.UUID, day
         object_id=report.id,
         data={"days": days},
     )
+    await db.commit()
+
+
+async def delete_report(db: AsyncSession, session: Session, report_id: uuid.UUID) -> None:
+    """On-demand deletion of a case (offer §8 "cancellazione a norma").
+
+    Gated by the ``can_delete_submission`` permission. Mirrors the retention job:
+    encrypted attachments are removed from storage, then the row is deleted
+    (cascading to answers/comments/files/recipient links). Audited without content.
+    """
+    if not session.permissions.get("can_delete_submission", False):
+        raise CaseForbidden("Permission denied")
+    report = await _get_report(db, session, report_id)
+    files = (
+        await db.scalars(select(ReportFile).where(ReportFile.report_id == report.id))
+    ).all()
+    for f in files:
+        if f.reference_id:
+            storage.delete(f.reference_id)
+    await audit.log(
+        db, tenant_id=session.tenant_id, type="report_delete", user_id=session.user_id, object_id=report.id
+    )
+    await db.delete(report)  # cascades to answers/comments/files/recipient links
     await db.commit()
 
 

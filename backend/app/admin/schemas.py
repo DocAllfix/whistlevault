@@ -87,5 +87,20 @@ class StatusCreate(BaseModel):
     order: int = 0
 
 
+class StatusUpdate(BaseModel):
+    label: dict[str, str] | None = None
+    order: int | None = None
+
+
+class SubStatusCreate(BaseModel):
+    label: dict[str, str]
+    order: int = 0
+
+
+class SubStatusUpdate(BaseModel):
+    label: dict[str, str] | None = None
+    order: int | None = None
+
+
 class SettingsUpdate(BaseModel):
     settings: dict[str, Any]

@@ -58,6 +58,16 @@ async def case_detail(
     return await service.get_detail(db, session, report_id)
 
 
+@router.delete("/{report_id}")
+async def delete_case(
+    report_id: uuid.UUID,
+    session: Session = Depends(_handler),
+    db: AsyncSession = Depends(get_session),
+) -> dict:
+    await service.delete_report(db, session, report_id)
+    return {"status": "ok"}
+
+
 @router.post("/{report_id}/comments")
 async def add_comment(
     report_id: uuid.UUID,
