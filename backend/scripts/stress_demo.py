@@ -29,6 +29,9 @@ from app import crypto
 
 BASE = os.environ.get("WB_DEMO_BASE_DOMAIN", "wbapp.dedyn.io")
 COUNT = int(os.environ.get("WB_DEMO_COUNT", "10"))
+# SPREAD/BURST submit only on tenants [START..COUNT] so a re-run never injects
+# stress reports into already-delivered instances (e.g. START=11 for the 2nd batch).
+START = int(os.environ.get("WB_STRESS_START", "1"))
 API = os.environ.get("WB_STRESS_API", "http://localhost:8000")
 PER_TENANT = int(os.environ.get("WB_STRESS_PER_TENANT", "20"))
 BURST = int(os.environ.get("WB_STRESS_BURST", "50"))
@@ -97,8 +100,9 @@ def submit(n, cid, answers, barrier, out):
 
 def login(n, password, barrier, out):
     barrier.wait()
+    # Per-instance username is admin{n} (provision_demo.py), NOT a bare "admin".
     st, _, dt = http("POST", "/api/auth/login", back_host(n),
-                     {"username": "admin", "password": password})
+                     {"username": f"admin{n}", "password": password})
     out.append((n, st, dt))
 
 
@@ -132,10 +136,10 @@ def parse_creds():
 
 def main():
     tenants = {}
-    for n in range(1, COUNT + 1):
+    for n in range(START, COUNT + 1):
         cid, fields, brand = load_questionnaire(n)
         tenants[n] = (cid, fields, brand)
-    print(f"Tenants caricati: {COUNT}  (brand es. tenant1={tenants[1][2]})")
+    print(f"Tenants SPREAD: {START}..{COUNT}  (brand es. tenant{START}={tenants[START][2]})")
 
     # --- A) SPREAD: PER_TENANT submit su OGNI tenant, tutti nello stesso istante
     jobs = []
@@ -154,12 +158,12 @@ def main():
 
     # --- B) BURST: BURST submit su UN tenant -> il rate-limit deve reggere
     if BURST > 0:
-        cid, fields, _ = tenants[1]
-        jobs = [lambda b, o, i=i: submit(1, cid, build_answers(fields, 1, 1000 + i), b, o)
+        cid, fields, _ = tenants[START]
+        jobs = [lambda b, o, i=i: submit(START, cid, build_answers(fields, START, 1000 + i), b, o)
                 for i in range(BURST)]
         out, dt = run_jobs(jobs)
         codes = Counter(st for _, st, _ in out)
-        print(f"\n[B] BURST su tenant 1: {BURST} simultanei in {dt:.2f}s")
+        print(f"\n[B] BURST su tenant {START}: {BURST} simultanei in {dt:.2f}s")
         print(f"    status: {dict(codes)}  (atteso: ~30x200 poi 429; 0x5xx)")
 
     # --- C) LOGIN storm (Argon2) su tutti i tenant

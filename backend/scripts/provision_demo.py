@@ -48,7 +48,9 @@ async def _provision_one(session, n: int) -> dict | None:
         public_domain=public_domain,
         backoffice_domain=backoffice_domain,
         # Public/backoffice brand name shown in the UI (per-tenant, neutral).
-        settings={"branding": {"name": f"WBApp Demo {n}"}},
+        # enforce_2fa=False keeps the demo frictionless (direct login). 2FA stays
+        # available as a feature testers can enable, but is not forced.
+        settings={"branding": {"name": f"WBApp Demo {n}"}, "enforce_2fa": False},
     )
     session.add(tenant)
     await session.flush()
